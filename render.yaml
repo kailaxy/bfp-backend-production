@@ -1,0 +1,31 @@
+# Render service definition for bfp-backend
+# This file is optional for Render web services but helps define the service locally.
+services:
+  - type: web
+    name: bfp-backend
+    env: node
+    plan: free  # change to a paid plan if you need larger resources
+    buildCommand: "npm install"
+    startCommand: "npm start"
+    region: oregon
+    branch: main
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase: false
+      - key: DB_HOST
+        fromDatabase: false
+      - key: DB_NAME
+        fromDatabase: false
+      - key: DB_USER
+        fromDatabase: false
+      - key: DB_PASSWORD
+        fromDatabase: false
+      - key: DB_PORT
+        fromDatabase: false
+      - key: JWT_SECRET
+        fromDatabase: false
+      - key: NODE_ENV
+        fromDatabase: false
+      - key: PORT
+        fromDatabase: false

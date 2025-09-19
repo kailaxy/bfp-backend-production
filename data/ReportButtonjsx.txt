@@ -1,0 +1,23 @@
+// src/components/ReportButton.jsx
+import React, { useContext } from "react";
+import { MapContext } from "../logic.jsx";
+
+export default function ReportButton() {
+  const { reportMode, setReportMode, clearUI } = useContext(MapContext);
+
+  function handleClick() {
+    console.log("▶️ ReportButton clicked – reportMode was:", reportMode);
+
+    // 1. Clear all layers & panels
+    clearUI();
+
+    // 2. Toggle report mode to open/close the incident-drop flow
+    setReportMode(!reportMode);
+  }
+
+  return (
+    <button className="report-button" onClick={handleClick}>
+      {reportMode ? "Cancel Report" : "Report Fire"}
+    </button>
+  );
+}
