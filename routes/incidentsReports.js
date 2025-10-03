@@ -66,7 +66,12 @@ router.post('/', async (req, res) => {
     const params = [lat, lng, barangay, address, alarm_level, reported_at || new Date(), reported_by];
     const { rows } = await db.query(insertSQL, params);
 
-    res.status(201).json({ success: true, fire_id: rows[0].id });
+    console.log(`� New incident report added (ID: ${rows[0].id}) - no forecast generation (user report only)`);
+
+    res.status(201).json({ 
+      success: true, 
+      fire_id: rows[0].id
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });

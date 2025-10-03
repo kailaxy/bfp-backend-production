@@ -4,6 +4,7 @@ const router  = express.Router();
 const pool    = require('../config/db');
 const authenticateJWT = require('../middleware/auth');
 const requireResponder = require('../middleware/responder');
+const ForecastGenerationUtils = require('../services/forecastGenerationUtils');
 
 /**
  * POST /api/active_fires
@@ -291,7 +292,17 @@ router.post('/:id/resolve', async (req, res) => {
     // 3) Delete from active_fires
     await pool.query(`DELETE FROM active_fires WHERE id = $1`, [id]);
 
-    return res.json({ message: 'Fire resolved and archived.' });
+    // 4) Trigger automatic 12-month forecast generation
+    // Run forecast generation in background (don't wait for completion)  
+    ForecastGenerationUtils.triggerAfterFireResolution(id)
+      .catch(error => {
+        console.error(`❌ Forecast generation error for resolved fire ${id}:`, error);
+      });
+
+    return res.json({ 
+      message: 'Fire resolved and archived.',
+      forecast_generation: 'triggered' // Inform client that forecasts are being updated
+    });
   } catch (err) {
     console.error('Error resolving fire:', err);
     return res.status(500).json({ error: 'Failed to resolve fire' });

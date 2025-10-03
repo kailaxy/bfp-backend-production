@@ -8,6 +8,12 @@ function authenticateJWT(req, res, next) {
   const token = authHeader.split(' ')[1];
   jwt.verify(token, JWT_SECRET, (err, user) => {
     if (err) return res.status(403).json({ error: 'Invalid token' });
+    
+    // Ensure this is an access token, not a refresh token
+    if (user.type && user.type !== 'access') {
+      return res.status(403).json({ error: 'Invalid token type' });
+    }
+    
     req.user = user;
     next();
   });

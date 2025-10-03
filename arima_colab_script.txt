@@ -1,0 +1,392 @@
+# ==============================
+# ARIMA Fire Forecasting for Google Colab
+# ==============================
+"""
+ARIMA-based Fire Forecasting System for Google Colab
+Processes historical fire data and generates monthly predictions
+
+Usage in Colab:
+1. Upload the arima_historical_data.csv file
+2. Run this script to generate forecasts
+3. Modify target_year and target_month as needed
+"""
+
+# Install required packages (run this cell first in Colab)
+# !pip install pandas numpy statsmodels matplotlib seaborn
+
+import warnings
+warnings.filterwarnings("ignore")
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from datetime import datetime, timedelta
+from statsmodels.tsa.arima.model import ARIMA
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+
+# ==============================
+# CONFIGURATION
+# ==============================
+# Set your target forecast period here
+TARGET_YEAR = 2025
+TARGET_MONTH = 10  # October
+
+# Data file path (upload this file to Colab)
+DATA_FILE = 'arima_historical_data.csv'
+
+# ==============================
+# HELPER FUNCTIONS
+# ==============================
+
+def parse_to_month(x):
+    """Parse date string to monthly timestamp"""
+    try:
+        return pd.Period(str(x), freq='M').to_timestamp()
+    except Exception:
+        dt = pd.to_datetime(str(x), errors='coerce')
+        if pd.isna(dt):
+            return pd.NaT
+        return dt.to_period('M').to_timestamp()
+
+def categorize_risk(predicted_cases, lower_bound, upper_bound):
+    """Categorize risk level and flag based on predicted cases and upper bound"""
+    # Risk level based on predicted_cases
+    if predicted_cases >= 1:
+        risk_level = "High"
+    elif predicted_cases >= 0.5:
+        risk_level = "Medium"
+    elif predicted_cases >= 0.2:
+        risk_level = "Low-Moderate"
+    else:
+        risk_level = "Very Low"
+    
+    # Risk flag based on upper_bound confidence interval
+    if upper_bound >= 3:
+        risk_flag = "Elevated Risk"
+    elif upper_bound >= 2:
+        risk_flag = "Watchlist"
+    else:
+        risk_flag = None
+    
+    return risk_level, risk_flag
+
+def forecast_barangay_fires(historical_data, target_year, target_month):
+    """
+    Generate ARIMA forecasts for fire incidents per barangay
+    
+    Args:
+        historical_data: DataFrame with columns: barangay, date, incident_count
+        target_year: Year to forecast (e.g., 2025)
+        target_month: Month to forecast (1-12)
+    
+    Returns:
+        List of forecast results per barangay
+    """
+    # Convert date column to datetime
+    historical_data['DATE_TS'] = historical_data['date'].apply(parse_to_month)
+    df = historical_data.dropna(subset=['DATE_TS'])
+    
+    # Target period setup
+    target_period = pd.Period(f'{target_year}-{target_month:02d}', freq='M')
+    target_ts = target_period.to_timestamp()
+    
+    results = []
+    
+    print(f"🔥 Generating ARIMA forecasts for {target_year}-{target_month:02d}")
+    print(f"📊 Processing {len(df['barangay'].unique())} barangays...")
+    
+    for barangay, g in df.groupby('barangay'):
+        print(f"   Processing: {barangay}")
+        
+        # Prepare time series
+        s = g.sort_values('DATE_TS').set_index('DATE_TS')['incident_count'].astype(float)
+        full_index = pd.date_range(start=s.index.min(), end=s.index.max(), freq='MS')
+        s = s.reindex(full_index, fill_value=0).astype(float)
+        s.index.freq = 'MS'
+        
+        last_period = pd.Period(s.index.max(), freq='M')
+        steps = int((target_period - last_period).n)
+        
+        forecast_series = pd.Series(dtype=float)
+        forecast_ci = pd.DataFrame()
+        oct_val, oct_low, oct_high = np.nan, np.nan, np.nan
+        
+        if steps <= 0:
+            # Target month is in historical data
+            oct_val = float(s[target_ts]) if target_ts in s.index else np.nan
+            oct_low, oct_high = oct_val, oct_val
+        else:
+            nonzero_counts = (s != 0).sum()
+            
+            if len(s) < 6 or nonzero_counts < 3:
+                # Insufficient data - use fallback average
+                fallback = s.mean()
+                forecast_index = pd.date_range(
+                    start=s.index.max() + pd.offsets.MonthBegin(),
+                    periods=steps, freq='MS'
+                )
+                forecast_series = pd.Series(np.repeat(fallback, steps), index=forecast_index)
+                forecast_ci = pd.DataFrame({
+                    'lower': forecast_series - s.std(),
+                    'upper': forecast_series + s.std()
+                }, index=forecast_index)
+            else:
+                # Try ARIMA/SARIMA modeling
+                fit = None
+                try:
+                    model = ARIMA(s, order=(1,1,1),
+                                enforce_stationarity=False,
+                                enforce_invertibility=False)
+                    fit = model.fit()
+                except Exception:
+                    try:
+                        model = SARIMAX(s, order=(1,1,1), seasonal_order=(1,1,1,12),
+                                      enforce_stationarity=False,
+                                      enforce_invertibility=False)
+                        fit = model.fit(disp=False)
+                    except Exception:
+                        pass
+                
+                if fit is not None:
+                    fc_obj = fit.get_forecast(steps=steps)
+                    fc = fc_obj.predicted_mean
+                    forecast_index = pd.date_range(
+                        start=s.index.max() + pd.offsets.MonthBegin(),
+                        periods=steps, freq='MS'
+                    )
+                    forecast_series = pd.Series(fc.values, index=forecast_index)
+                    
+                    # 95% Confidence Interval
+                    ci = fc_obj.conf_int(alpha=0.05)
+                    ci.index = forecast_index
+                    ci.columns = ['lower', 'upper']
+                    forecast_ci = ci
+                else:
+                    # Fallback to average
+                    fallback = s.mean()
+                    forecast_index = pd.date_range(
+                        start=s.index.max() + pd.offsets.MonthBegin(),
+                        periods=steps, freq='MS'
+                    )
+                    forecast_series = pd.Series(np.repeat(fallback, steps), index=forecast_index)
+                    forecast_ci = pd.DataFrame({
+                        'lower': forecast_series - s.std(),
+                        'upper': forecast_series + s.std()
+                    }, index=forecast_index)
+            
+            # Extract target month values
+            if target_ts in forecast_series.index:
+                oct_val = forecast_series.loc[target_ts]
+                oct_low = forecast_ci.loc[target_ts, 'lower']
+                oct_high = forecast_ci.loc[target_ts, 'upper']
+        
+        # Ensure non-negative values
+        oct_val = max(0, float(oct_val)) if not np.isnan(oct_val) else 0
+        oct_low = max(0, float(oct_low)) if not np.isnan(oct_low) else 0
+        oct_high = max(0, float(oct_high)) if not np.isnan(oct_high) else 0
+        
+        # Categorize risk
+        risk_level, risk_flag = categorize_risk(oct_val, oct_low, oct_high)
+        
+        results.append({
+            'barangay_name': barangay,
+            'month': target_month,
+            'year': target_year,
+            'predicted_cases': round(oct_val, 3),
+            'lower_bound': round(oct_low, 3),
+            'upper_bound': round(oct_high, 3),
+            'risk_level': risk_level,
+            'risk_flag': risk_flag
+        })
+    
+    return results
+
+# ==============================
+# DATA VISUALIZATION FUNCTIONS
+# ==============================
+
+def plot_historical_trends(df):
+    """Plot historical fire trends by barangay"""
+    plt.figure(figsize=(15, 10))
+    
+    # Monthly totals over time
+    monthly_totals = df.groupby('date')['incident_count'].sum().reset_index()
+    monthly_totals['date'] = pd.to_datetime(monthly_totals['date'])
+    
+    plt.subplot(2, 2, 1)
+    plt.plot(monthly_totals['date'], monthly_totals['incident_count'])
+    plt.title('Total Fire Incidents Over Time')
+    plt.xlabel('Date')
+    plt.ylabel('Incidents')
+    plt.xticks(rotation=45)
+    
+    # Top 10 barangays by total incidents
+    top_barangays = df.groupby('barangay')['incident_count'].sum().nlargest(10)
+    
+    plt.subplot(2, 2, 2)
+    top_barangays.plot(kind='bar')
+    plt.title('Top 10 Barangays by Total Incidents')
+    plt.xlabel('Barangay')
+    plt.ylabel('Total Incidents')
+    plt.xticks(rotation=45)
+    
+    # Seasonal patterns (by month)
+    df['month'] = pd.to_datetime(df['date']).dt.month
+    seasonal = df.groupby('month')['incident_count'].mean()
+    
+    plt.subplot(2, 2, 3)
+    seasonal.plot(kind='bar')
+    plt.title('Average Incidents by Month')
+    plt.xlabel('Month')
+    plt.ylabel('Average Incidents')
+    
+    # Yearly trends
+    df['year'] = pd.to_datetime(df['date']).dt.year
+    yearly = df.groupby('year')['incident_count'].sum()
+    
+    plt.subplot(2, 2, 4)
+    yearly.plot(kind='bar')
+    plt.title('Total Incidents by Year')
+    plt.xlabel('Year')
+    plt.ylabel('Total Incidents')
+    
+    plt.tight_layout()
+    plt.show()
+
+def plot_forecast_results(results_df):
+    """Plot forecast results"""
+    plt.figure(figsize=(15, 8))
+    
+    # Risk level distribution
+    plt.subplot(1, 2, 1)
+    risk_counts = results_df['risk_level'].value_counts()
+    plt.pie(risk_counts.values, labels=risk_counts.index, autopct='%1.1f%%')
+    plt.title('Risk Level Distribution')
+    
+    # Predicted cases by barangay
+    plt.subplot(1, 2, 2)
+    results_sorted = results_df.sort_values('predicted_cases', ascending=True)
+    plt.barh(results_sorted['barangay_name'], results_sorted['predicted_cases'])
+    plt.xlabel('Predicted Cases')
+    plt.title('Predicted Fire Cases by Barangay')
+    plt.tight_layout()
+    plt.show()
+
+# ==============================
+# MAIN EXECUTION
+# ==============================
+
+def main():
+    """Main execution function for Colab"""
+    print("🔥 ARIMA Fire Forecasting System")
+    print("=" * 50)
+    
+    # Load data
+    try:
+        print(f"📊 Loading data from {DATA_FILE}...")
+        df = pd.read_csv(DATA_FILE)
+        print(f"✅ Loaded {len(df)} records for {len(df['barangay'].unique())} barangays")
+        print(f"📅 Date range: {df['date'].min()} to {df['date'].max()}")
+    except FileNotFoundError:
+        print(f"❌ Error: {DATA_FILE} not found!")
+        print("Please upload the arima_historical_data.csv file to Colab")
+        return
+    
+    # Display data summary
+    print("\n📋 Data Summary:")
+    print(df.groupby('barangay')['incident_count'].agg(['count', 'sum', 'mean']).round(3))
+    
+    # Plot historical trends
+    print("\n📈 Generating historical trend plots...")
+    plot_historical_trends(df)
+    
+    # Generate forecasts
+    print(f"\n🔮 Generating forecasts for {TARGET_YEAR}-{TARGET_MONTH:02d}...")
+    results = forecast_barangay_fires(df, TARGET_YEAR, TARGET_MONTH)
+    
+    # Convert results to DataFrame
+    results_df = pd.DataFrame(results)
+    
+    # Display results
+    print("\n🎯 FORECAST RESULTS:")
+    print("=" * 50)
+    print(results_df.to_string(index=False))
+    
+    # Summary statistics
+    print(f"\n📊 SUMMARY:")
+    print(f"Total barangays: {len(results)}")
+    print(f"Average predicted cases: {results_df['predicted_cases'].mean():.3f}")
+    print(f"Total predicted cases: {results_df['predicted_cases'].sum():.3f}")
+    
+    risk_summary = results_df['risk_level'].value_counts()
+    print(f"\n🚨 RISK LEVEL SUMMARY:")
+    for risk, count in risk_summary.items():
+        print(f"  {risk}: {count} barangays")
+    
+    # Plot forecast results
+    print("\n📊 Generating forecast visualization...")
+    plot_forecast_results(results_df)
+    
+    # Save results
+    output_file = f'forecast_results_{TARGET_YEAR}_{TARGET_MONTH:02d}.csv'
+    results_df.to_csv(output_file, index=False)
+    print(f"\n💾 Results saved to: {output_file}")
+    
+    return results_df
+
+# ==============================
+# RUN THE ANALYSIS
+# ==============================
+
+if __name__ == "__main__":
+    # Run the main analysis
+    forecast_results = main()
+    
+    # Additional analysis can be added here
+    print("\n✅ Analysis complete!")
+    print("You can now download the results CSV file from Colab")
+
+# ==============================
+# ADDITIONAL UTILITY FUNCTIONS
+# ==============================
+
+def compare_scenarios(df, scenarios):
+    """
+    Compare multiple forecast scenarios
+    
+    Args:
+        df: Historical data DataFrame
+        scenarios: List of (year, month) tuples
+    """
+    comparison_results = []
+    
+    for year, month in scenarios:
+        print(f"Generating forecasts for {year}-{month:02d}...")
+        results = forecast_barangay_fires(df, year, month)
+        for result in results:
+            result['scenario'] = f"{year}-{month:02d}"
+        comparison_results.extend(results)
+    
+    comparison_df = pd.DataFrame(comparison_results)
+    
+    # Plot comparison
+    plt.figure(figsize=(15, 8))
+    for scenario in comparison_df['scenario'].unique():
+        scenario_data = comparison_df[comparison_df['scenario'] == scenario]
+        plt.plot(scenario_data['barangay_name'], scenario_data['predicted_cases'], 
+                marker='o', label=scenario)
+    
+    plt.xlabel('Barangay')
+    plt.ylabel('Predicted Cases')
+    plt.title('Forecast Comparison Across Scenarios')
+    plt.legend()
+    plt.xticks(rotation=90)
+    plt.tight_layout()
+    plt.show()
+    
+    return comparison_df
+
+# Example usage for scenario comparison:
+# scenarios = [(2025, 10), (2025, 11), (2025, 12)]
+# comparison_results = compare_scenarios(df, scenarios)

@@ -48,11 +48,28 @@ router.post('/login', async (req, res) => {
     // ignore DB errors here; login should still succeed
   }
 
-  const token = jwt.sign(
-    { id: user.id, username: user.username, role: user.role },
+  // Create short-lived access token (30 minutes) and long-lived refresh token (7 days)
+  const accessToken = jwt.sign(
+    { id: user.id, username: user.username, role: user.role, type: 'access' },
     JWT_SECRET,
-    { expiresIn: '1d' }
+    { expiresIn: '30m' }
   );
+
+  const refreshToken = jwt.sign(
+    { id: user.id, username: user.username, type: 'refresh' },
+    JWT_SECRET,
+    { expiresIn: '30d' }
+  );
+
+  // Store refresh token in database (you might want to create a refresh_tokens table)
+  try {
+    const pool = require('../config/db');
+    // For simplicity, we'll store it in a simple way. In production, consider a dedicated table.
+    await pool.query('UPDATE users SET refresh_token = $1 WHERE id = $2', [refreshToken, user.id]);
+  } catch (err) {
+    console.error('Error storing refresh token:', err);
+    // Continue even if refresh token storage fails
+  }
 
   const userPayload = {
     id: user.id,
@@ -62,7 +79,76 @@ router.post('/login', async (req, res) => {
     station_name: station_info ? station_info.name : null
   };
 
-  res.json({ token, user: userPayload });
+  res.json({ 
+    token: accessToken, // Keep same property name for backward compatibility
+    accessToken: accessToken,
+    refreshToken: refreshToken,
+    user: userPayload 
+  });
+});
+
+// Refresh token endpoint
+router.post('/refresh', async (req, res) => {
+  const { refreshToken } = req.body;
+  
+  if (!refreshToken) {
+    return res.status(401).json({ error: 'Refresh token required' });
+  }
+
+  try {
+    // Verify refresh token
+    const decoded = jwt.verify(refreshToken, JWT_SECRET);
+    
+    if (decoded.type !== 'refresh') {
+      return res.status(401).json({ error: 'Invalid token type' });
+    }
+
+    // Check if refresh token exists in database
+    const pool = require('../config/db');
+    const result = await pool.query('SELECT * FROM users WHERE id = $1 AND refresh_token = $2', [decoded.id, refreshToken]);
+    
+    if (!result.rows.length) {
+      return res.status(401).json({ error: 'Invalid refresh token' });
+    }
+
+    const user = result.rows[0];
+
+    // Get station info
+    let station_info = null;
+    try {
+      const q = await pool.query('SELECT id, name FROM mandaluyong_fire_stations WHERE id = $1 LIMIT 1', [user.station_id]);
+      if (q && q.rows && q.rows.length) station_info = q.rows[0];
+    } catch (err) {
+      // ignore DB errors
+    }
+
+    // Generate new access token
+    const newAccessToken = jwt.sign(
+      { id: user.id, username: user.username, role: user.role, type: 'access' },
+      JWT_SECRET,
+      { expiresIn: '30m' }
+    );
+
+    const userPayload = {
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      station_id: user.station_id || null,
+      station_name: station_info ? station_info.name : null
+    };
+
+    res.json({
+      token: newAccessToken,
+      accessToken: newAccessToken,
+      user: userPayload
+    });
+
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Refresh token expired' });
+    }
+    return res.status(401).json({ error: 'Invalid refresh token' });
+  }
 });
 
 module.exports = router;
