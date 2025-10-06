@@ -249,26 +249,29 @@ app.post('/api/upload-arima-forecasts', async (req, res) => {
     await db.query('BEGIN');
 
     try {
-      // Clear existing ARIMA forecasts (optional - comment out if you want to keep existing)
-      await db.query('DELETE FROM arima_forecasts');
-      console.log('🗑️  Cleared existing ARIMA forecasts');
+      // Clear existing forecasts (optional - comment out if you want to keep existing)
+      await db.query('DELETE FROM forecasts');
+      console.log('🗑️  Cleared existing forecasts');
 
-      // Insert all forecasts
+      // Insert all forecasts using the correct schema
       let insertCount = 0;
       for (const forecast of forecasts) {
         const query = `
-          INSERT INTO arima_forecasts (
-            barangay_name, month_year, predicted_fires, 
-            risk_level, created_at, model_version
-          ) VALUES ($1, $2, $3, $4, NOW(), $5)
+          INSERT INTO forecasts (
+            barangay_name, month, year, predicted_cases, 
+            lower_bound, upper_bound, risk_level, risk_flag, created_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
         `;
         
         await db.query(query, [
           forecast.barangay_name,
-          forecast.month_year, 
-          forecast.predicted_fires,
+          forecast.month,
+          forecast.year,
+          forecast.predicted_cases,
+          forecast.lower_bound || 0,
+          forecast.upper_bound || forecast.predicted_cases * 3,
           forecast.risk_level,
-          'comprehensive_12month_v1'
+          forecast.risk_flag || false
         ]);
         insertCount++;
       }
@@ -277,7 +280,7 @@ app.post('/api/upload-arima-forecasts', async (req, res) => {
       console.log('✅ Successfully uploaded', insertCount, 'ARIMA forecasts');
 
       // Get verification count
-      const verification = await db.query('SELECT COUNT(*) as count FROM arima_forecasts');
+      const verification = await db.query('SELECT COUNT(*) as count FROM forecasts');
       
       res.json({ 
         success: true, 
