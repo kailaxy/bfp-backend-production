@@ -475,6 +475,38 @@ app.get('/api/diagnose-notifications', async (req, res) => {
   }
 });
 
+// ===== FORECASTS DATA DIAGNOSTIC =====
+app.get('/api/diagnose-forecasts', async (req, res) => {
+  try {
+    const db = require('./config/db');
+    
+    // Check available forecast years and months
+    const availableData = await db.query(`
+      SELECT DISTINCT year, month, COUNT(*) as barangay_count
+      FROM forecasts 
+      GROUP BY year, month 
+      ORDER BY year, month
+    `);
+    
+    // Check October 2025 specifically
+    const oct2025 = await db.query(`
+      SELECT COUNT(*) as count, 
+             array_agg(DISTINCT barangay_name) as barangays
+      FROM forecasts 
+      WHERE year = 2025 AND month = 10
+    `);
+    
+    res.json({
+      available_data: availableData.rows,
+      october_2025: oct2025.rows[0]
+    });
+    
+  } catch (error) {
+    console.error('Forecasts diagnostic error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Start server
 app.listen(PORT, HOST, () => {
   console.log(`🚀 BFP Backend Server started successfully!`);
