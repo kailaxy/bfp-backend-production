@@ -278,17 +278,18 @@ class Multi12MonthForecastingService {
       // Clear existing forecasts for the 12 months
       const deletedCount = await this.clear12MonthForecasts(startYear, startMonth);
       
-      // Try to generate new 12-month forecasts with Python, fallback to sample data
+      // Try to generate new 12-month forecasts with Python
       let results;
       try {
         console.log('🐍 Attempting Python-based forecast generation...');
         results = await this.generate12MonthForecasts(startYear, startMonth);
         console.log('✅ Python forecast generation successful');
       } catch (pythonError) {
-        console.log('⚠️ Python forecast generation failed, using fallback system');
+        console.log('❌ Python forecast generation failed on production');
         console.log('Python error:', pythonError.message);
-        results = await this.generateFallback12MonthForecasts(startYear, startMonth);
-        console.log('✅ Fallback forecast generation successful');
+        console.log('💡 Solution: Generate forecasts locally and upload to production database');
+        console.log('💡 Run: node scripts/generate_and_upload_forecasts.js');
+        throw new Error('Python forecasting unavailable on production. Use local generation script.');
       }
       
       // Save to database
