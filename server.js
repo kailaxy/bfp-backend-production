@@ -502,16 +502,42 @@ app.get('/api/diagnose-forecasts', async (req, res) => {
     // Get a few sample records
     const samples = await db.query('SELECT * FROM forecasts LIMIT 3');
     
+    // Check database size and table info
+    const dbSize = await db.query(`
+      SELECT 
+        pg_size_pretty(pg_database_size(current_database())) as database_size,
+        pg_size_pretty(pg_total_relation_size('forecasts')) as forecasts_table_size
+    `);
+    
+    // Check table schema
+    const tableSchema = await db.query(`
+      SELECT column_name, data_type, is_nullable, column_default
+      FROM information_schema.columns 
+      WHERE table_name = 'forecasts' 
+      ORDER BY ordinal_position
+    `);
+    
+    // Check if there are any constraints or triggers that might delete data
+    const constraints = await db.query(`
+      SELECT constraint_name, constraint_type 
+      FROM information_schema.table_constraints 
+      WHERE table_name = 'forecasts'
+    `);
+    
     res.json({
       total_records: totalCount.rows[0].total,
       available_data: availableData.rows,
       october_2025: oct2025.rows[0],
-      sample_records: samples.rows
+      sample_records: samples.rows,
+      database_info: dbSize.rows[0],
+      table_schema: tableSchema.rows,
+      constraints: constraints.rows,
+      render_free_tier_warning: "Render free tier databases can be reset/limited - data may not persist"
     });
     
   } catch (error) {
     console.error('Forecasts diagnostic error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message, stack: error.stack });
   }
 });
 
