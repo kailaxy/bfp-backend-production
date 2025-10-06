@@ -435,6 +435,46 @@ app.get('/api/diagnose-active-fires', async (req, res) => {
   }
 });
 
+// ===== NOTIFICATIONS TABLE DIAGNOSTIC =====
+app.get('/api/diagnose-notifications', async (req, res) => {
+  try {
+    const db = require('./config/db');
+    
+    // Check if notifications table exists
+    const tableExists = await db.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'notifications'
+      );
+    `);
+    
+    if (tableExists.rows[0].exists) {
+      // Check table structure
+      const tableInfo = await db.query(`
+        SELECT column_name, column_default, is_nullable, data_type 
+        FROM information_schema.columns 
+        WHERE table_name = 'notifications' 
+        ORDER BY ordinal_position
+      `);
+      
+      res.json({
+        table_exists: true,
+        table_structure: tableInfo.rows
+      });
+    } else {
+      res.json({
+        table_exists: false,
+        message: 'Notifications table does not exist'
+      });
+    }
+    
+  } catch (error) {
+    console.error('Notifications diagnostic error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Start server
 app.listen(PORT, HOST, () => {
   console.log(`🚀 BFP Backend Server started successfully!`);
