@@ -13,22 +13,30 @@ const ForecastGenerationUtils = require('../services/forecastGenerationUtils');
  *   lng:           Number,
  *   address:       String,
  *   barangay:      String,
- *   alarm_level:   String
+ *   alarm_level:   String,
+ *   reported_by:   String (optional - for public reports)
  * }
- * Protected: Only authenticated responders/admins can report. The server will set
- * `reported_by` to the authenticated user's username to prevent spoofing.
+ * Public endpoint: Allows both authenticated and anonymous fire reports
  */
-router.post('/', authenticateJWT, requireResponder, async (req, res) => {
+router.post('/', async (req, res) => {
   const {
     lat,
     lng,
     address,
     barangay,
-    alarm_level
+    alarm_level,
+    reported_by: clientReportedBy
   } = req.body;
 
-  // Use the authenticated user's username as the reporter (server-side authoritative)
-  const reported_by = (req.user && (req.user.username || req.user.name)) ? (req.user.username || req.user.name) : 'Unknown';
+  // Determine reporter: authenticated user takes priority, then client-provided, then default
+  let reported_by = 'Anonymous';
+  if (req.user && (req.user.username || req.user.name)) {
+    // Authenticated user - use their username (server-side authoritative)
+    reported_by = req.user.username || req.user.name;
+  } else if (clientReportedBy && typeof clientReportedBy === 'string' && clientReportedBy.trim()) {
+    // Public report with provided name
+    reported_by = clientReportedBy.trim();
+  }
 
 
   // Basic validation
