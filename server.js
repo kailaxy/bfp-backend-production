@@ -302,6 +302,47 @@ app.post('/api/upload-arima-forecasts', async (req, res) => {
 });
 console.log('📡 Temporary ARIMA upload endpoint added: POST /api/upload-arima-forecasts');
 
+// ===== TEMPORARY ZANIGA ENCODING FIX ENDPOINT =====
+app.post('/api/fix-zaniga-encoding', async (req, res) => {
+  try {
+    const db = require('./config/db');
+    
+    console.log('🔧 Starting Zaniga encoding fix...');
+    
+    // Update Old Zañiga to Old Zaniga (handles various encodings)
+    const result1 = await db.query(
+      "UPDATE forecasts SET barangay_name = 'Old Zaniga' WHERE barangay_name LIKE '%Za%iga%' AND barangay_name LIKE 'Old%'"
+    );
+    
+    // Update New Zañiga to New Zaniga (handles various encodings)
+    const result2 = await db.query(
+      "UPDATE forecasts SET barangay_name = 'New Zaniga' WHERE barangay_name LIKE '%Za%iga%' AND barangay_name LIKE 'New%'"
+    );
+    
+    // Check what we have now
+    const check = await db.query(
+      "SELECT DISTINCT barangay_name FROM forecasts WHERE barangay_name LIKE '%Zaniga%' ORDER BY barangay_name"
+    );
+    
+    console.log('✅ Zaniga encoding fixed');
+    console.log('📊 Old Zaniga records updated:', result1.rowCount);
+    console.log('📊 New Zaniga records updated:', result2.rowCount);
+    console.log('📋 Current Zaniga entries:', check.rows.map(r => r.barangay_name));
+    
+    res.json({
+      success: true,
+      old_zaniga_updated: result1.rowCount,
+      new_zaniga_updated: result2.rowCount,
+      current_zaniga_names: check.rows.map(r => r.barangay_name)
+    });
+    
+  } catch (error) {
+    console.error('❌ Zaniga fix error:', error);
+    res.status(500).json({ error: 'Fix failed: ' + error.message });
+  }
+});
+console.log('🔧 Temporary Zaniga fix endpoint added: POST /api/fix-zaniga-encoding');
+
 // Start server
 app.listen(PORT, HOST, () => {
   console.log(`🚀 BFP Backend Server started successfully!`);
