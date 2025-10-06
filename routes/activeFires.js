@@ -138,11 +138,10 @@ router.post('/', authenticateJWT, requireResponder, async (req, res) => {
           if (!users.length) continue;
 
           const message = `New active fire reported near ${station.name || 'your station'}: ${address}`;
-          const payload = { fire_id: row.id, station_id: station.id, feature };
 
           for (const u of users) {
             try {
-              await pool.query(`INSERT INTO notifications (user_id, message, payload) VALUES ($1, $2, $3)`, [u.id, message, payload]);
+              await pool.query(`INSERT INTO notifications (user_id, message) VALUES ($1, $2)`, [u.id, message]);
             } catch (err) {
               console.warn('Could not insert notification (table may be missing):', err && err.message ? err.message : err);
             }

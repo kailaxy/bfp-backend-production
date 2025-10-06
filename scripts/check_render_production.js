@@ -1,8 +1,8 @@
 const { Pool } = require('pg');
 
 async function checkRenderProductionData() {
-  // Use the Render external DATABASE_URL
-  const DATABASE_URL = process.env.DATABASE_URL || "postgresql://bfpmapping_user:1kM5ksXVCWNGlZgqAhpNobH6R5lGJIxv@dpg-cs79pldumphs73a0fjfg-a.oregon-postgres.render.com:5432/bfpmapping";
+  // Use the new Render external DATABASE_URL
+  const DATABASE_URL = process.env.DATABASE_URL || "postgresql://bfpmapping_nua2_user:mDB9Q1s6mnnTyX6gzqSMD5CTphUsvR6L@dpg-d35r1s2li9vc738l9f70-a.oregon-postgres.render.com:5432/bfpmapping_nua2";
   
   const pool = new Pool({
     connectionString: DATABASE_URL,

@@ -16,7 +16,7 @@ const authenticateJWT = require('../middleware/auth');
 // GET /api/notifications - return unread notifications for the current user
 router.get('/', authenticateJWT, async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT id, message, payload, read, created_at FROM notifications WHERE user_id = $1 AND read = FALSE ORDER BY created_at DESC', [req.user.id]);
+    const { rows } = await pool.query('SELECT id, message, read, created_at FROM notifications WHERE user_id = $1 AND read = FALSE ORDER BY created_at DESC', [req.user.id]);
     try {
       const debug = process.env.DEBUG_NOTIFICATIONS === '1' || process.env.DEBUG_NOTIFICATIONS === 'true';
       if (rows.length > 0 || debug) {
