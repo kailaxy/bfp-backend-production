@@ -7,7 +7,7 @@
 
 require('dotenv').config();
 const { Pool } = require('pg');
-const Multi12MonthForecastingService = require('../services/multi12MonthForecastingService');
+const forecastingService = require('../services/multi12MonthForecastingService');
 
 // Production database connection
 const productionPool = new Pool({
@@ -16,7 +16,6 @@ const productionPool = new Pool({
 });
 
 async function generateAndUploadForecasts() {
-  const service = new Multi12MonthForecastingService();
   
   try {
     console.log('🚀 GENERATING FORECASTS LOCALLY WITH PYTHON...');
@@ -28,7 +27,7 @@ async function generateAndUploadForecasts() {
     const startMonth = now.getMonth() + 1;
     
     console.log('🐍 Using local Python environment for ARIMA forecasting...');
-    const results = await service.generate12MonthForecasts(startYear, startMonth);
+    const results = await forecastingService.generate12MonthForecasts(startYear, startMonth);
     
     console.log(`✅ Generated ${results.total_predictions} ARIMA forecasts locally`);
     console.log(`📊 Coverage: ${results.barangays_count} barangays over ${results.total_months} months`);

@@ -397,6 +397,44 @@ app.post('/api/fix-active-fires-table', async (req, res) => {
 });
 console.log('🔧 Temporary active_fires fix endpoint added: POST /api/fix-active-fires-table');
 
+// ===== DIAGNOSTIC ENDPOINT =====
+app.get('/api/diagnose-active-fires', async (req, res) => {
+  try {
+    const db = require('./config/db');
+    
+    // Check table structure
+    const tableInfo = await db.query(`
+      SELECT column_name, column_default, is_nullable, data_type 
+      FROM information_schema.columns 
+      WHERE table_name = 'active_fires' 
+      ORDER BY ordinal_position
+    `);
+    
+    // Check sequences
+    const sequences = await db.query(`
+      SELECT * FROM information_schema.sequences 
+      WHERE sequence_name LIKE '%active_fires%'
+    `);
+    
+    // Check constraints
+    const constraints = await db.query(`
+      SELECT constraint_name, constraint_type 
+      FROM information_schema.table_constraints 
+      WHERE table_name = 'active_fires'
+    `);
+    
+    res.json({
+      table_structure: tableInfo.rows,
+      sequences: sequences.rows,
+      constraints: constraints.rows
+    });
+    
+  } catch (error) {
+    console.error('Diagnostic error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Start server
 app.listen(PORT, HOST, () => {
   console.log(`🚀 BFP Backend Server started successfully!`);
