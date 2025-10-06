@@ -316,13 +316,35 @@ class Multi12MonthForecastingService {
   }
 
   /**
-   * Generate fallback 12-month forecasts using sample data when Python is unavailable
+   * Generate historical-based 12-month forecasts when Python is unavailable
+   * Uses actual historical fire data patterns instead of random data
    * @param {number} startYear - Starting year
    * @param {number} startMonth - Starting month (1-12)
    * @returns {Promise<Object>} Forecast results in same format as Python version
    */
   async generateFallback12MonthForecasts(startYear, startMonth) {
-    console.log('🔄 Generating fallback 12-month forecasts using sample data...');
+    console.log('🔄 Generating historical data-based forecasts (Python unavailable)...');
+    
+    // Use historical-based forecasting service
+    const HistoricalBasedForecastingService = require('./historicalBasedForecastingService');
+    const historicalService = new HistoricalBasedForecastingService();
+    
+    try {
+      const result = await historicalService.generateHistoricalBasedForecasts(startYear, startMonth);
+      console.log('✅ Historical-based forecast generation successful');
+      return result;
+    } catch (error) {
+      console.log('⚠️ Historical-based forecasting failed, using minimal safe forecasts');
+      return await this.generateMinimalSafeForecasts(startYear, startMonth);
+    }
+  }
+  
+  /**
+   * Generate minimal safe forecasts as absolute last resort
+   * Only used if both Python and historical data fail
+   */
+  async generateMinimalSafeForecasts(startYear, startMonth) {
+    console.log('🔄 Generating minimal safe forecasts as last resort...');
 
     // Get all barangays
     const barangaysQuery = 'SELECT name FROM barangays ORDER BY name';
@@ -339,30 +361,32 @@ class Multi12MonthForecastingService {
       const month = currentDate.getMonth() + 1;
 
       console.log(`📊 Generating fallback forecasts for ${year}-${month.toString().padStart(2, '0')}`);
+      
+      const isDrySeason = month >= 11 || month <= 4;
+      console.log(`   🌤️ ${isDrySeason ? 'DRY SEASON' : 'WET SEASON'} - Expected ${isDrySeason ? 'higher' : 'lower'} fire activity`);
 
       // Generate forecast for each barangay
       for (const barangay of barangays) {
-        // Create realistic-looking sample data based on historical patterns
-        const baseRisk = Math.random() * 3; // 0-3 range
-        const seasonalFactor = month >= 11 || month <= 4 ? 1.5 : 0.7; // Higher in dry season
-        const predicted = Math.max(0, Math.round(baseRisk * seasonalFactor));
+        // Generate minimal safe forecasts (conservative, low-risk predictions)
+        // This only runs if both Python and historical data are unavailable
         
-        const lower = Math.max(0, predicted - Math.ceil(predicted * 0.3));
-        const upper = predicted + Math.ceil(predicted * 0.5);
+        let predicted = 0.1; // Very conservative baseline
         
-        let riskLevel, riskFlag;
-        if (predicted === 0) {
-          riskLevel = 'Very Low';
-          riskFlag = false;
-        } else if (predicted <= 1) {
+        // Only slight increase during traditional dry season
+        if (month >= 11 || month <= 4) { // Dry season
+          predicted = 0.2; // Slightly higher but still very conservative
+        }
+        
+        const lower = 0;
+        const upper = Math.round(predicted * 2 * 100) / 100; // Conservative upper bound
+        
+        // Conservative risk categorization for minimal safe forecasts
+        let riskLevel = 'Very Low';
+        let riskFlag = false;
+        
+        if (predicted >= 0.2) {
           riskLevel = 'Low';
-          riskFlag = false;
-        } else if (predicted <= 2) {
-          riskLevel = 'Low-Moderate';
-          riskFlag = true;
-        } else {
-          riskLevel = 'Moderate';
-          riskFlag = true;
+          riskFlag = false; // Still safe, no alerts for minimal predictions
         }
 
         const forecast = {
@@ -389,7 +413,7 @@ class Multi12MonthForecastingService {
       total_predictions: totalPredictions,
       barangays_count: barangays.length,
       total_months: 12,
-      method: 'fallback'
+      method: 'minimal-safe'
     };
   }
 

@@ -5,7 +5,7 @@ services:
     name: bfp-backend
     env: node
     plan: free  # change to a paid plan if you need larger resources
-    buildCommand: "npm install && (pip install -r forecasting/requirements.txt || echo 'Python dependencies installation failed, continuing without forecasting')"
+    buildCommand: "npm install && python3 --version && pip3 install -r forecasting/requirements.txt && echo 'Python and dependencies installed successfully' || echo 'Python not available on free tier - using historical data forecasting'"
     startCommand: "npm start"
     region: oregon
     branch: render-deploy-v3
