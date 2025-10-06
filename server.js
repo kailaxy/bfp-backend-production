@@ -8,8 +8,21 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const HOST = process.env.HOST || '0.0.0.0';
 
+// CORS configuration for production
+const corsOptions = {
+  origin: [
+    'https://bfp-frontend.onrender.com',
+    'http://localhost:3000',
+    'http://localhost:5173',
+    /\.onrender\.com$/
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Development helper: inject a dev user into requests when NODE_ENV !== 'production'
@@ -117,15 +130,20 @@ app.post('/api/scheduler/trigger', async (req, res) => {
 
 // Start server
 app.listen(PORT, HOST, () => {
-  console.log(`Server running on ${HOST}:${PORT}`);
+  console.log(`🚀 BFP Backend Server started successfully!`);
+  console.log(`📍 Server running on ${HOST}:${PORT}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔗 CORS enabled for frontend origins`);
   
   // Start the monthly forecasting scheduler
   try {
     schedulerService.start();
-    console.log('Monthly forecasting scheduler started successfully');
+    console.log('📅 Monthly forecasting scheduler started successfully');
   } catch (error) {
-    console.error('Failed to start forecasting scheduler:', error.message);
+    console.error('⚠️  Failed to start forecasting scheduler:', error.message);
   }
+  
+  console.log('✅ Backend initialization complete');
 });
 
 // Global error handler: ensure JSON responses for unexpected errors
