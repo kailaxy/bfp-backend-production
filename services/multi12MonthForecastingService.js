@@ -356,16 +356,16 @@ class Multi12MonthForecastingService {
         let riskLevel, riskFlag;
         if (predicted === 0) {
           riskLevel = 'Very Low';
-          riskFlag = 'green';
+          riskFlag = null;
         } else if (predicted <= 1) {
           riskLevel = 'Low';
-          riskFlag = 'yellow';
+          riskFlag = null;
         } else if (predicted <= 2) {
-          riskLevel = 'Moderate';
-          riskFlag = 'orange';
+          riskLevel = 'Low-Moderate';
+          riskFlag = 'Watchlist';
         } else {
-          riskLevel = 'High';
-          riskFlag = 'red';
+          riskLevel = 'Moderate';
+          riskFlag = 'Elevated Risk';
         }
 
         const forecast = {
@@ -377,7 +377,6 @@ class Multi12MonthForecastingService {
           upper_bound: upper,
           risk_level: riskLevel,
           risk_flag: riskFlag,
-          confidence_score: Math.random() * 0.3 + 0.7, // 0.7-1.0
           created_at: new Date().toISOString()
         };
 
