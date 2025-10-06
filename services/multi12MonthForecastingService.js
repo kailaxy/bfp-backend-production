@@ -353,16 +353,16 @@ class Multi12MonthForecastingService {
         let riskLevel, riskFlag;
         if (predicted === 0) {
           riskLevel = 'Very Low';
-          riskFlag = null;
+          riskFlag = false;
         } else if (predicted <= 1) {
           riskLevel = 'Low';
-          riskFlag = null;
+          riskFlag = false;
         } else if (predicted <= 2) {
           riskLevel = 'Low-Moderate';
-          riskFlag = 'Watchlist';
+          riskFlag = true;
         } else {
           riskLevel = 'Moderate';
-          riskFlag = 'Elevated Risk';
+          riskFlag = true;
         }
 
         const forecast = {
