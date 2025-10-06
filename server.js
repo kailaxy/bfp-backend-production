@@ -480,6 +480,9 @@ app.get('/api/diagnose-forecasts', async (req, res) => {
   try {
     const db = require('./config/db');
     
+    // Check total count in forecasts table
+    const totalCount = await db.query('SELECT COUNT(*) as total FROM forecasts');
+    
     // Check available forecast years and months
     const availableData = await db.query(`
       SELECT DISTINCT year, month, COUNT(*) as barangay_count
@@ -496,9 +499,14 @@ app.get('/api/diagnose-forecasts', async (req, res) => {
       WHERE year = 2025 AND month = 10
     `);
     
+    // Get a few sample records
+    const samples = await db.query('SELECT * FROM forecasts LIMIT 3');
+    
     res.json({
+      total_records: totalCount.rows[0].total,
       available_data: availableData.rows,
-      october_2025: oct2025.rows[0]
+      october_2025: oct2025.rows[0],
+      sample_records: samples.rows
     });
     
   } catch (error) {
