@@ -5,6 +5,7 @@ const pool    = require('../config/db');
 const authenticateJWT = require('../middleware/auth');
 const requireResponder = require('../middleware/responder');
 const ForecastGenerationUtils = require('../services/forecastGenerationUtils');
+const { v4: uuidv4 } = require('uuid');
 
 /**
  * POST /api/active_fires
@@ -54,12 +55,14 @@ router.post('/', authenticateJWT, requireResponder, async (req, res) => {
 
   try {
     const reported_at = new Date();
+    const fire_id = uuidv4(); // Generate UUID for the id column
 
     // Note: ST_MakePoint expects (lng, lat). Ensure param order matches.
     const { rows } = await pool.query(
       `
       INSERT INTO active_fires
-        (address,
+        (id,
+         address,
          barangay,
          alarm_level,
          reported_by,
@@ -68,8 +71,8 @@ router.post('/', authenticateJWT, requireResponder, async (req, res) => {
          lng,
          location)
       VALUES
-        ($1, $2, $3, $4, $5, $6, $7,
-         ST_SetSRID(ST_MakePoint($7, $6), 4326)
+        ($1, $2, $3, $4, $5, $6, $7, $8,
+         ST_SetSRID(ST_MakePoint($8, $7), 4326)
         )
       RETURNING
         id,
@@ -82,8 +85,8 @@ router.post('/', authenticateJWT, requireResponder, async (req, res) => {
         lng,
         ST_AsGeoJSON(location)::json AS geometry
       `,
-      // params: address, barangay, alarm_level, reported_by, reported_at, lat, lng
-      [address, barangay, alarm_level, reported_by, reported_at, lat, lng]
+      // params: id, address, barangay, alarm_level, reported_by, reported_at, lat, lng
+      [fire_id, address, barangay, alarm_level, reported_by, reported_at, lat, lng]
     );
 
     const row = rows[0];
