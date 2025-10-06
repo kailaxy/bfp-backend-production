@@ -49,7 +49,14 @@ const usersRoute              = require('./routes/users');
 const forecastsRoute          = require('./routes/forecasts');
 
 // Import scheduler service
-const schedulerService        = require('./services/schedulerService');
+// Optional scheduler service (may fail if Python dependencies are missing)
+let schedulerService = null;
+try {
+  schedulerService = require('./services/schedulerService');
+  console.log('📅 Scheduler service loaded successfully');
+} catch (error) {
+  console.warn('⚠️  Scheduler service not available (likely missing Python dependencies):', error.message);
+}
 
 // Mount routes under /api
 app.use('/api/hydrants',           hydrantsRoute);
@@ -99,6 +106,12 @@ app.get('/health', async (req, res) => {
 // Scheduler status endpoint (admin only)
 app.get('/api/scheduler/status', async (req, res) => {
   try {
+    if (!schedulerService) {
+      return res.json({ 
+        error: 'Scheduler service not available', 
+        reason: 'Python dependencies may be missing' 
+      });
+    }
     const status = schedulerService.getStatus();
     res.json(status);
   } catch (error) {
@@ -116,6 +129,9 @@ app.post('/api/scheduler/trigger', async (req, res) => {
     }
     
     // This would normally require admin authentication, but keeping simple for now
+    if (!schedulerService) {
+      return res.status(503).json({ error: 'Scheduler service not available - Python dependencies may be missing' });
+    }
     await schedulerService.triggerManualForecasting(parseInt(year), parseInt(month));
     
     res.json({ 
@@ -132,19 +148,35 @@ app.post('/api/scheduler/trigger', async (req, res) => {
 app.get('/api/admin/generate-production-forecasts', async (req, res) => {
   try {
     console.log('🚀 Production forecast generation requested via API');
-    const generateProductionForecasts = require('./scripts/generate_production_forecasts');
     
-    // Run forecast generation
-    await generateProductionForecasts();
-    
-    res.json({ 
-      success: true, 
-      message: '12-month forecasts generated successfully for production',
-      startMonth: '2025-10',
-      endMonth: '2026-09'
-    });
+    // Try full forecast generation first (requires Python)
+    try {
+      const generateProductionForecasts = require('./scripts/generate_production_forecasts');
+      await generateProductionForecasts();
+      
+      res.json({ 
+        success: true, 
+        message: '12-month forecasts generated successfully for production',
+        method: 'full-python-forecast',
+        startMonth: '2025-10',
+        endMonth: '2026-09'
+      });
+    } catch (pythonError) {
+      console.log('⚠️  Python forecast generation failed, falling back to sample data:', pythonError.message);
+      
+      // Fall back to sample forecast insertion
+      const { insertSampleForecasts } = require('./scripts/insert_sample_forecasts');
+      const result = await insertSampleForecasts();
+      
+      res.json({ 
+        success: true, 
+        message: 'Sample forecasts generated (Python dependencies not available)',
+        method: 'sample-data-fallback',
+        ...result
+      });
+    }
   } catch (error) {
-    console.error('Production forecast generation failed:', error);
+    console.error('Production forecast generation failed completely:', error);
     res.status(500).json({ 
       error: 'Failed to generate production forecasts: ' + error.message,
       details: error.stack
@@ -205,12 +237,17 @@ app.listen(PORT, HOST, () => {
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 CORS enabled for frontend origins`);
   
-  // Start the monthly forecasting scheduler
-  try {
-    schedulerService.start();
-    console.log('📅 Monthly forecasting scheduler started successfully');
-  } catch (error) {
-    console.error('⚠️  Failed to start forecasting scheduler:', error.message);
+  // Start the monthly forecasting scheduler (optional - continue if it fails)
+  if (schedulerService) {
+    try {
+      schedulerService.start();
+      console.log('📅 Monthly forecasting scheduler started successfully');
+    } catch (error) {
+      console.error('⚠️  Failed to start forecasting scheduler (continuing without it):', error.message);
+      console.error('💡 This may be due to missing Python dependencies - server will work without forecasting');
+    }
+  } else {
+    console.log('⚠️  Scheduler service not available - skipping scheduler startup');
   }
   
   console.log('✅ Backend initialization complete');
