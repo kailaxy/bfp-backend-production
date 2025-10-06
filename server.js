@@ -343,6 +343,60 @@ app.post('/api/fix-zaniga-encoding', async (req, res) => {
 });
 console.log('🔧 Temporary Zaniga fix endpoint added: POST /api/fix-zaniga-encoding');
 
+// ===== TEMPORARY ACTIVE_FIRES TABLE FIX ENDPOINT =====
+app.post('/api/fix-active-fires-table', async (req, res) => {
+  try {
+    const db = require('./config/db');
+    
+    console.log('🔧 Starting active_fires table fix...');
+    
+    // Check current table structure
+    const tableInfo = await db.query(`
+      SELECT column_name, column_default, is_nullable, data_type 
+      FROM information_schema.columns 
+      WHERE table_name = 'active_fires' 
+      ORDER BY ordinal_position
+    `);
+    
+    console.log('📋 Current active_fires table structure:', tableInfo.rows);
+    
+    // Try to create the sequence if it doesn't exist
+    try {
+      await db.query(`CREATE SEQUENCE IF NOT EXISTS active_fires_id_seq OWNED BY active_fires.id`);
+      console.log('✅ Created active_fires_id_seq sequence');
+    } catch (seqError) {
+      console.log('⚠️ Sequence might already exist:', seqError.message);
+    }
+    
+    // Fix the id column to be auto-incrementing
+    await db.query(`
+      ALTER TABLE active_fires 
+      ALTER COLUMN id SET DEFAULT nextval('active_fires_id_seq'::regclass)
+    `);
+    
+    console.log('✅ Fixed active_fires id column to use sequence');
+    
+    // Check the updated structure
+    const updatedInfo = await db.query(`
+      SELECT column_name, column_default, is_nullable, data_type 
+      FROM information_schema.columns 
+      WHERE table_name = 'active_fires' AND column_name = 'id'
+    `);
+    
+    res.json({ 
+      success: true, 
+      message: 'Fixed active_fires table id column',
+      before: tableInfo.rows,
+      after_id_column: updatedInfo.rows[0]
+    });
+    
+  } catch (error) {
+    console.error('❌ Active fires table fix error:', error);
+    res.status(500).json({ error: 'Table fix failed: ' + error.message });
+  }
+});
+console.log('🔧 Temporary active_fires fix endpoint added: POST /api/fix-active-fires-table');
+
 // Start server
 app.listen(PORT, HOST, () => {
   console.log(`🚀 BFP Backend Server started successfully!`);
