@@ -19,8 +19,7 @@ async function checkProductionData() {
         SELECT DISTINCT year, month, COUNT(*) as count 
         FROM forecasts 
         GROUP BY year, month 
-        ORDER BY year DESC, month DESC 
-        LIMIT 10
+        ORDER BY year ASC, month ASC
       `);
       console.log('Available forecast periods:');
       availableData.rows.forEach(row => {
