@@ -13,31 +13,26 @@ const ForecastGenerationUtils = require('../services/forecastGenerationUtils');
  *   lng:           Number,
  *   address:       String,
  *   barangay:      String,
- *   alarm_level:   String,
- *   reported_by:   String (optional - for public reports)
+ *   alarm_level:   String
  * }
- * Public endpoint: Allows both authenticated and anonymous fire reports
+ * Protected: Only authenticated responders/admins can report. The server will set
+ * `reported_by` to the authenticated user's username to prevent spoofing.
  */
-router.post('/', async (req, res) => {
+router.post('/', authenticateJWT, requireResponder, async (req, res) => {
   const {
     lat,
     lng,
     address,
     barangay,
-    alarm_level,
-    reported_by: clientReportedBy
+    alarm_level
   } = req.body;
 
-  // Determine reporter: authenticated user takes priority, then client-provided, then default
-  let reported_by = 'Anonymous';
-  if (req.user && (req.user.username || req.user.name)) {
-    // Authenticated user - use their username (server-side authoritative)
-    reported_by = req.user.username || req.user.name;
-  } else if (clientReportedBy && typeof clientReportedBy === 'string' && clientReportedBy.trim()) {
-    // Public report with provided name
-    reported_by = clientReportedBy.trim();
-  }
+  // Use the authenticated user's username as the reporter (server-side authoritative)
+  const reported_by = (req.user && (req.user.username || req.user.name)) ? (req.user.username || req.user.name) : 'Unknown';
 
+
+  // Log received data for debugging
+  console.log('Fire report received:', { lat, lng, address, barangay, alarm_level, reported_by });
 
   // Basic validation
   if (
@@ -47,6 +42,13 @@ router.post('/', async (req, res) => {
     !barangay ||
     !alarm_level
   ) {
+    console.log('Validation failed - missing fields:', { 
+      lat: lat == null ? 'missing' : 'ok', 
+      lng: lng == null ? 'missing' : 'ok',
+      address: !address ? 'missing' : 'ok',
+      barangay: !barangay ? 'missing' : 'ok',
+      alarm_level: !alarm_level ? 'missing' : 'ok'
+    });
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
@@ -165,7 +167,17 @@ router.post('/', async (req, res) => {
 
   } catch (err) {
     console.error('Error inserting active_fires:', err);
-    return res.status(500).json({ error: 'Failed to save active fire' });
+    console.error('Error details:', {
+      message: err.message,
+      code: err.code,
+      detail: err.detail,
+      table: err.table,
+      column: err.column
+    });
+    return res.status(500).json({ 
+      error: 'Failed to save active fire',
+      details: process.env.NODE_ENV === 'development' ? err.message : 'Database error'
+    });
   }
 });
 /**
