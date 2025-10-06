@@ -170,14 +170,6 @@ class Multi12MonthForecastingService {
         lower_bound, upper_bound, risk_level, risk_flag, 
         created_at
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
-      ON CONFLICT (barangay_name, month, year) 
-      DO UPDATE SET 
-        predicted_cases = EXCLUDED.predicted_cases,
-        lower_bound = EXCLUDED.lower_bound,
-        upper_bound = EXCLUDED.upper_bound,
-        risk_level = EXCLUDED.risk_level,
-        risk_flag = EXCLUDED.risk_flag,
-        created_at = NOW()
     `;
 
     try {
@@ -198,17 +190,22 @@ class Multi12MonthForecastingService {
         console.log(`Saving ${forecasts.length} forecasts for ${monthKey}...`);
         
         for (const forecast of forecasts) {
-          await db.query(query, [
-            forecast.barangay_name,
-            forecast.month,
-            forecast.year,
-            forecast.predicted_cases,
-            forecast.lower_bound,
-            forecast.upper_bound,
-            forecast.risk_level,
-            forecast.risk_flag
-          ]);
-          totalSaved++;
+          try {
+            await db.query(query, [
+              forecast.barangay_name,
+              forecast.month,
+              forecast.year,
+              forecast.predicted_cases,
+              forecast.lower_bound,
+              forecast.upper_bound,
+              forecast.risk_level,
+              forecast.risk_flag
+            ]);
+            totalSaved++;
+          } catch (insertError) {
+            console.error(`❌ Failed to insert forecast for ${forecast.barangay_name} ${forecast.year}-${forecast.month}:`, insertError.message);
+            // Continue with other forecasts even if one fails
+          }
         }
         
         console.log(`✅ Saved ${forecasts.length} forecasts for ${monthKey}`);
