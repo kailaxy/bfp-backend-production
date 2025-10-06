@@ -128,6 +128,76 @@ app.post('/api/scheduler/trigger', async (req, res) => {
   }
 });
 
+// Production forecast generation endpoint
+app.get('/api/admin/generate-production-forecasts', async (req, res) => {
+  try {
+    console.log('🚀 Production forecast generation requested via API');
+    const generateProductionForecasts = require('./scripts/generate_production_forecasts');
+    
+    // Run forecast generation
+    await generateProductionForecasts();
+    
+    res.json({ 
+      success: true, 
+      message: '12-month forecasts generated successfully for production',
+      startMonth: '2025-10',
+      endMonth: '2026-09'
+    });
+  } catch (error) {
+    console.error('Production forecast generation failed:', error);
+    res.status(500).json({ 
+      error: 'Failed to generate production forecasts: ' + error.message,
+      details: error.stack
+    });
+  }
+});
+
+// Database status check endpoint  
+app.get('/api/admin/db-status', async (req, res) => {
+  try {
+    const db = require('./config/db');
+    
+    // Check forecasts
+    const forecastCount = await db.query('SELECT COUNT(*) as count FROM forecasts');
+    const periods = await db.query(`
+      SELECT year, month, COUNT(*) as count 
+      FROM forecasts 
+      GROUP BY year, month 
+      ORDER BY year, month
+    `);
+    
+    // Check other tables
+    const tables = {};
+    const tableNames = ['historical_fires', 'users', 'barangays', 'notifications'];
+    for (const table of tableNames) {
+      try {
+        const count = await db.query(`SELECT COUNT(*) FROM ${table}`);
+        tables[table] = parseInt(count.rows[0].count);
+      } catch (err) {
+        tables[table] = `ERROR: ${err.message}`;
+      }
+    }
+    
+    res.json({
+      success: true,
+      database: {
+        connected: true,
+        forecasts: {
+          total: parseInt(forecastCount.rows[0].count),
+          periods: periods.rows
+        },
+        tables
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      database: { connected: false }
+    });
+  }
+});
+
 // Start server
 app.listen(PORT, HOST, () => {
   console.log(`🚀 BFP Backend Server started successfully!`);
