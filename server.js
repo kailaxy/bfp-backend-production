@@ -544,6 +544,7 @@ app.get('/api/diagnose-forecasts', async (req, res) => {
 // Monthly Report Generation Endpoint
 app.get('/api/admin/generate-monthly-report', async (req, res) => {
   try {
+    const db = require('./config/db');
     const { month, year } = req.query;
     const currentDate = new Date();
     const targetMonth = month ? parseInt(month) : currentDate.getMonth() + 1;
