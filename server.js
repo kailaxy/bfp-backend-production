@@ -975,19 +975,19 @@ app.get('/api/admin/generate-monthly-report', async (req, res) => {
       
       summary: {
         total_incidents: parseInt(summary.rows[0].total_incidents) || 0,
-        avg_alarm_level: '--- (Incomplete data)',
-        total_casualties: '--- (Historical data incomplete)',
-        total_injuries: '--- (Historical data incomplete)',
-        total_damage: '--- (Historical data incomplete)',
+        avg_alarm_level: Math.round((parseFloat(summary.rows[0].avg_alarm_level) || 2) * 10) / 10,
+        total_casualties: parseInt(summary.rows[0].total_casualties) || 0,
+        total_injuries: parseInt(summary.rows[0].total_injuries) || 0,
+        total_damage: parseFloat(summary.rows[0].total_damage) || 0,
         avg_duration: 'N/A'
       },
       
       barangay_incidents: barangayStats.rows.map(row => ({
         barangay: row.barangay,
         incident_count: parseInt(row.incident_count),
-        total_damage: '--- (Incomplete)',
-        casualties: '--- (Incomplete)',
-        injuries: '--- (Incomplete)'
+        total_damage: parseFloat(row.total_damage) || 0,
+        casualties: parseInt(row.casualties) || 0,
+        injuries: parseInt(row.injuries) || 0
       })),
       
       incident_details: incidentDetails.rows.map(row => ({
@@ -1014,7 +1014,7 @@ app.get('/api/admin/generate-monthly-report', async (req, res) => {
       })),
       
       damage_summary: {
-        total_damage: '--- (Historical data incomplete)',
+        total_damage: parseFloat(summary.rows[0].total_damage) || 0,
         damage_ranges: [
           { range: '--- (Incomplete data)', incident_count: parseInt(summary.rows[0].total_incidents) || 0 }
         ]
@@ -1301,18 +1301,45 @@ app.get('/api/admin/generate-monthly-report-simple-fix', async (req, res) => {
     
     console.log(`📅 Fixed date range: ${startDate.toISOString()} to ${endDate.toISOString()}`);
     
-    // 1. Basic incident count
-    const countResult = await db.query(
-      'SELECT COUNT(*) as total_incidents FROM historical_fires WHERE reported_at >= $1 AND reported_at <= $2',
-      [startDate, endDate]
-    );
-    const totalIncidents = parseInt(countResult.rows[0].total_incidents) || 0;
+    // 1. Basic incident count and real totals from BFP data
+    const summaryQuery = `
+      SELECT 
+        COUNT(*) as total_incidents,
+        COALESCE(SUM(CASE 
+          WHEN estimated_damage IS NOT NULL AND estimated_damage != 0 
+          THEN estimated_damage 
+          ELSE 0 
+        END), 0) as total_damage,
+        COALESCE(SUM(CASE 
+          WHEN casualties IS NOT NULL AND casualties > 0 
+          THEN casualties 
+          ELSE 0 
+        END), 0) as total_casualties,
+        COALESCE(SUM(CASE 
+          WHEN injuries IS NOT NULL AND injuries > 0 
+          THEN injuries 
+          ELSE 0 
+        END), 0) as total_injuries
+      FROM historical_fires 
+      WHERE reported_at >= $1 AND reported_at <= $2
+    `;
+    
+    const summaryResult = await db.query(summaryQuery, [startDate, endDate]);
+    const totalIncidents = parseInt(summaryResult.rows[0].total_incidents) || 0;
+    const totalDamage = parseFloat(summaryResult.rows[0].total_damage) || 0;
+    const totalCasualties = parseInt(summaryResult.rows[0].total_casualties) || 0;
+    const totalInjuries = parseInt(summaryResult.rows[0].total_injuries) || 0;
     
     // 2. Barangay breakdown (only if we have incidents)
     let barangays = [];
     if (totalIncidents > 0) {
       const barangayResult = await db.query(
-        `SELECT barangay, COUNT(*) as incident_count 
+        `SELECT 
+          barangay, 
+          COUNT(*) as incident_count,
+          COALESCE(SUM(CASE WHEN estimated_damage IS NOT NULL AND estimated_damage != 0 THEN estimated_damage ELSE 0 END), 0) as total_damage,
+          COALESCE(SUM(CASE WHEN casualties IS NOT NULL AND casualties > 0 THEN casualties ELSE 0 END), 0) as casualties,
+          COALESCE(SUM(CASE WHEN injuries IS NOT NULL AND injuries > 0 THEN injuries ELSE 0 END), 0) as injuries
          FROM historical_fires 
          WHERE reported_at >= $1 AND reported_at <= $2 AND barangay IS NOT NULL AND barangay != ''
          GROUP BY barangay ORDER BY incident_count DESC LIMIT 10`,
@@ -1358,17 +1385,17 @@ app.get('/api/admin/generate-monthly-report-simple-fix', async (req, res) => {
       summary: {
         total_incidents: totalIncidents,
         avg_alarm_level: '--- (Incomplete data)',
-        total_casualties: '--- (Historical data incomplete)',
-        total_injuries: '--- (Historical data incomplete)',
-        total_damage: '--- (Historical data incomplete)',
+        total_casualties: totalCasualties,
+        total_injuries: totalInjuries,
+        total_damage: totalDamage,
         avg_duration: 'N/A'
       },
       barangay_incidents: barangays.map(row => ({
         barangay: row.barangay,
         incident_count: parseInt(row.incident_count),
-        total_damage: '--- (Incomplete)',
-        casualties: '--- (Incomplete)',
-        injuries: '--- (Incomplete)'
+        total_damage: parseFloat(row.total_damage) || 0,
+        casualties: parseInt(row.casualties) || 0,
+        injuries: parseInt(row.injuries) || 0
       })),
       incident_details: incidentDetails.map(row => ({
         id: row.id,
@@ -1391,9 +1418,11 @@ app.get('/api/admin/generate-monthly-report-simple-fix', async (req, res) => {
         { cause: 'Other', case_count: Math.floor(totalIncidents * 0.1), percentage: 10.0 }
       ].filter(c => c.case_count > 0),
       damage_summary: {
-        total_damage: '--- (Historical data incomplete)',
-        damage_ranges: [
-          { range: '--- (Incomplete data)', incident_count: totalIncidents }
+        total_damage: totalDamage,
+        damage_ranges: totalDamage > 0 ? [
+          { range: `₱${totalDamage.toLocaleString()}`, incident_count: totalIncidents }
+        ] : [
+          { range: '₱0 (No damage recorded)', incident_count: totalIncidents }
         ]
       },
       verification: incidentDetails.slice(0, 3).map((row, index) => ({
