@@ -811,7 +811,7 @@ app.get('/api/admin/generate-monthly-report', async (req, res) => {
           WHEN LOWER(COALESCE(alarm_level, '')) LIKE '%3rd%' OR LOWER(COALESCE(alarm_level, '')) LIKE '%third%' THEN 3
           WHEN LOWER(COALESCE(alarm_level, '')) LIKE '%4th%' OR LOWER(COALESCE(alarm_level, '')) LIKE '%fourth%' THEN 4
           WHEN LOWER(COALESCE(alarm_level, '')) LIKE '%5th%' OR LOWER(COALESCE(alarm_level, '')) LIKE '%fifth%' THEN 5
-          ELSE 2 END) as avg_alarm_level,
+          ELSE NULL END) as avg_alarm_level,
         COALESCE(SUM(CASE WHEN casualties IS NOT NULL AND casualties::text != '' AND casualties > 0 THEN casualties ELSE 0 END), 0) as total_casualties,
         COALESCE(SUM(CASE WHEN injuries IS NOT NULL AND injuries::text != '' AND injuries > 0 THEN injuries ELSE 0 END), 0) as total_injuries,
         COALESCE(SUM(CASE 
@@ -975,7 +975,8 @@ app.get('/api/admin/generate-monthly-report', async (req, res) => {
       
       summary: {
         total_incidents: parseInt(summary.rows[0].total_incidents) || 0,
-        avg_alarm_level: Math.round((parseFloat(summary.rows[0].avg_alarm_level) || 2) * 10) / 10,
+        avg_alarm_level: summary.rows[0].avg_alarm_level !== null ? 
+          Math.round(parseFloat(summary.rows[0].avg_alarm_level) * 10) / 10 : 'N/A',
         total_casualties: parseInt(summary.rows[0].total_casualties) || 0,
         total_injuries: parseInt(summary.rows[0].total_injuries) || 0,
         total_damage: parseFloat(summary.rows[0].total_damage) || 0,
@@ -1305,6 +1306,13 @@ app.get('/api/admin/generate-monthly-report-simple-fix', async (req, res) => {
     const summaryQuery = `
       SELECT 
         COUNT(*) as total_incidents,
+        AVG(CASE 
+          WHEN LOWER(COALESCE(alarm_level, '')) LIKE '%1st%' OR LOWER(COALESCE(alarm_level, '')) LIKE '%first%' THEN 1
+          WHEN LOWER(COALESCE(alarm_level, '')) LIKE '%2nd%' OR LOWER(COALESCE(alarm_level, '')) LIKE '%second%' THEN 2
+          WHEN LOWER(COALESCE(alarm_level, '')) LIKE '%3rd%' OR LOWER(COALESCE(alarm_level, '')) LIKE '%third%' THEN 3
+          WHEN LOWER(COALESCE(alarm_level, '')) LIKE '%4th%' OR LOWER(COALESCE(alarm_level, '')) LIKE '%fourth%' THEN 4
+          WHEN LOWER(COALESCE(alarm_level, '')) LIKE '%5th%' OR LOWER(COALESCE(alarm_level, '')) LIKE '%fifth%' THEN 5
+          ELSE NULL END) as avg_alarm_level,
         COALESCE(SUM(CASE 
           WHEN estimated_damage IS NOT NULL AND estimated_damage != 0 
           THEN estimated_damage 
@@ -1326,6 +1334,8 @@ app.get('/api/admin/generate-monthly-report-simple-fix', async (req, res) => {
     
     const summaryResult = await db.query(summaryQuery, [startDate, endDate]);
     const totalIncidents = parseInt(summaryResult.rows[0].total_incidents) || 0;
+    const avgAlarmLevel = summaryResult.rows[0].avg_alarm_level ? 
+      Math.round(parseFloat(summaryResult.rows[0].avg_alarm_level) * 10) / 10 : null;
     const totalDamage = parseFloat(summaryResult.rows[0].total_damage) || 0;
     const totalCasualties = parseInt(summaryResult.rows[0].total_casualties) || 0;
     const totalInjuries = parseInt(summaryResult.rows[0].total_injuries) || 0;
@@ -1384,7 +1394,7 @@ app.get('/api/admin/generate-monthly-report-simple-fix', async (req, res) => {
       },
       summary: {
         total_incidents: totalIncidents,
-        avg_alarm_level: '--- (Incomplete data)',
+        avg_alarm_level: avgAlarmLevel !== null ? avgAlarmLevel : 'N/A',
         total_casualties: totalCasualties,
         total_injuries: totalInjuries,
         total_damage: totalDamage,
