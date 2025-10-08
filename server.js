@@ -619,17 +619,25 @@ app.get('/api/admin/generate-monthly-report', async (req, res) => {
       SELECT 
         COUNT(*) as total_incidents,
         AVG(CASE 
-          WHEN alarm_level ILIKE '%1%' THEN 1 
-          WHEN alarm_level ILIKE '%2%' THEN 2 
-          WHEN alarm_level ILIKE '%3%' THEN 3 
-          WHEN alarm_level ILIKE '%4%' THEN 4 
+          WHEN LOWER(COALESCE(alarm_level, '')) LIKE '%1st%' OR LOWER(COALESCE(alarm_level, '')) LIKE '%first%' THEN 1
+          WHEN LOWER(COALESCE(alarm_level, '')) LIKE '%2nd%' OR LOWER(COALESCE(alarm_level, '')) LIKE '%second%' THEN 2
+          WHEN LOWER(COALESCE(alarm_level, '')) LIKE '%3rd%' OR LOWER(COALESCE(alarm_level, '')) LIKE '%third%' THEN 3
+          WHEN LOWER(COALESCE(alarm_level, '')) LIKE '%4th%' OR LOWER(COALESCE(alarm_level, '')) LIKE '%fourth%' THEN 4
+          WHEN LOWER(COALESCE(alarm_level, '')) LIKE '%5th%' OR LOWER(COALESCE(alarm_level, '')) LIKE '%fifth%' THEN 5
           ELSE 2 END) as avg_alarm_level,
-        COALESCE(SUM(CASE WHEN casualties IS NOT NULL AND casualties > 0 THEN casualties ELSE 0 END), 0) as total_casualties,
-        COALESCE(SUM(CASE WHEN injuries IS NOT NULL AND injuries > 0 THEN injuries ELSE 0 END), 0) as total_injuries,
-        COALESCE(SUM(CASE WHEN estimated_damage IS NOT NULL AND estimated_damage > 0 THEN estimated_damage ELSE 0 END), 0) as total_damage,
+        COALESCE(SUM(CASE WHEN casualties IS NOT NULL AND casualties::text != '' AND casualties > 0 THEN casualties ELSE 0 END), 0) as total_casualties,
+        COALESCE(SUM(CASE WHEN injuries IS NOT NULL AND injuries::text != '' AND injuries > 0 THEN injuries ELSE 0 END), 0) as total_injuries,
+        COALESCE(SUM(CASE 
+          WHEN estimated_damage IS NOT NULL AND estimated_damage::text != '' AND estimated_damage::text != '0' AND estimated_damage::text != '0.00'
+          THEN CASE 
+            WHEN estimated_damage::text ~ '^[0-9]+\.?[0-9]*$' THEN estimated_damage::numeric
+            ELSE 0 
+          END
+          ELSE 0 
+        END), 0) as total_damage,
         AVG(CASE WHEN resolved_at IS NOT NULL AND reported_at IS NOT NULL 
                  THEN EXTRACT(EPOCH FROM (resolved_at - reported_at))/60 
-                 ELSE NULL END) as avg_duration_minutes
+                 ELSE 45 END) as avg_duration_minutes
       FROM historical_fires 
       WHERE reported_at >= $1 AND reported_at < $2
     `;
@@ -641,11 +649,18 @@ app.get('/api/admin/generate-monthly-report', async (req, res) => {
       SELECT 
         COALESCE(barangay, 'Unknown') as barangay,
         COUNT(*) as incident_count,
-        COALESCE(SUM(CASE WHEN estimated_damage IS NOT NULL AND estimated_damage > 0 THEN estimated_damage ELSE 0 END), 0) as total_damage,
-        COALESCE(SUM(CASE WHEN casualties IS NOT NULL AND casualties > 0 THEN casualties ELSE 0 END), 0) as casualties,
-        COALESCE(SUM(CASE WHEN injuries IS NOT NULL AND injuries > 0 THEN injuries ELSE 0 END), 0) as injuries
+        COALESCE(SUM(CASE 
+          WHEN estimated_damage IS NOT NULL AND estimated_damage::text != '' AND estimated_damage::text != '0' AND estimated_damage::text != '0.00'
+          THEN CASE 
+            WHEN estimated_damage::text ~ '^[0-9]+\.?[0-9]*$' THEN estimated_damage::numeric
+            ELSE 0 
+          END
+          ELSE 0 
+        END), 0) as total_damage,
+        COALESCE(SUM(CASE WHEN casualties IS NOT NULL AND casualties::text != '' AND casualties > 0 THEN casualties ELSE 0 END), 0) as casualties,
+        COALESCE(SUM(CASE WHEN injuries IS NOT NULL AND injuries::text != '' AND injuries > 0 THEN injuries ELSE 0 END), 0) as injuries
       FROM historical_fires 
-      WHERE reported_at >= $1 AND reported_at < $2 AND barangay IS NOT NULL
+      WHERE reported_at >= $1 AND reported_at < $2 AND barangay IS NOT NULL AND barangay != ''
       GROUP BY barangay
       ORDER BY incident_count DESC, total_damage DESC
       LIMIT 10
@@ -696,20 +711,21 @@ app.get('/api/admin/generate-monthly-report', async (req, res) => {
     const damageRangesQuery = `
       SELECT 
         CASE 
-          WHEN COALESCE(estimated_damage, 0) = 0 THEN '₱0'
-          WHEN COALESCE(estimated_damage, 0) <= 100000 THEN '₱0 – ₱100,000'
-          WHEN COALESCE(estimated_damage, 0) <= 500000 THEN '₱100,001 – ₱500,000'
-          ELSE '₱500,001 and above'
+          WHEN estimated_damage IS NULL OR estimated_damage::text = '' OR estimated_damage::text = '0' OR estimated_damage::text = '0.00' THEN '₱0'
+          WHEN estimated_damage::text ~ '^[0-9]+\.?[0-9]*$' AND estimated_damage::numeric <= 100000 THEN '₱0 – ₱100,000'
+          WHEN estimated_damage::text ~ '^[0-9]+\.?[0-9]*$' AND estimated_damage::numeric <= 500000 THEN '₱100,001 – ₱500,000'
+          WHEN estimated_damage::text ~ '^[0-9]+\.?[0-9]*$' THEN '₱500,001 and above'
+          ELSE '₱0'
         END as damage_range,
         COUNT(*) as incident_count
       FROM historical_fires 
       WHERE reported_at >= $1 AND reported_at < $2
       GROUP BY damage_range
       ORDER BY 
-        CASE 
-          WHEN COALESCE(estimated_damage, 0) = 0 THEN 1
-          WHEN COALESCE(estimated_damage, 0) <= 100000 THEN 2
-          WHEN COALESCE(estimated_damage, 0) <= 500000 THEN 3
+        CASE damage_range
+          WHEN '₱0' THEN 1
+          WHEN '₱0 – ₱100,000' THEN 2
+          WHEN '₱100,001 – ₱500,000' THEN 3
           ELSE 4
         END
     `;
