@@ -4,7 +4,7 @@
  * Helper functions for triggering forecast generation in different scenarios
  */
 
-const multi12MonthForecastingService = require('./multi12MonthForecastingService');
+const forecastAutoRegenService = require('./forecastAutoRegenService');
 
 class ForecastGenerationUtils {
   
@@ -19,16 +19,20 @@ class ForecastGenerationUtils {
   static async triggerAfterBulkImport(source = "Bulk import", recordCount = 0) {
     try {
       console.log(`📊 Bulk historical data import completed (${source}: ${recordCount} records)`);
-      console.log('🔄 Triggering 12-month forecast generation...');
+      console.log('🔄 Triggering enhanced ARIMA/SARIMAX forecast regeneration...');
       
-      const result = await multi12MonthForecastingService.triggerForecastGeneration();
+      const result = await forecastAutoRegenService.queueRegeneration(
+        `Bulk import: ${source} (${recordCount} records)`
+      );
       
       if (result.success) {
-        console.log(`✅ Forecast generation completed after ${source}:`, result);
-        console.log(`   • Updated forecasts for ${result.barangaysCount} barangays`);
-        console.log(`   • Generated ${result.totalForecasts} predictions`);
+        console.log(`✅ Forecast regeneration completed after ${source}:`, result);
+        console.log(`   • Updated forecasts for ${result.successful_barangays} barangays`);
+        console.log(`   • Generated ${result.forecasts_generated} predictions`);
+      } else if (result.queued) {
+        console.log(`📋 Forecast regeneration queued after ${source}`);
       } else {
-        console.log(`⚠️ Forecast generation failed after ${source}:`, result.error);
+        console.log(`⚠️ Forecast regeneration failed after ${source}:`, result.message);
       }
       
       return result;
@@ -52,14 +56,18 @@ class ForecastGenerationUtils {
   static async triggerAfterFireResolution(fireId) {
     try {
       console.log(`🔥 Active fire resolved and moved to historical (ID: ${fireId})`);
-      console.log('🔄 Triggering 12-month forecast generation...');
+      console.log('🔄 Triggering enhanced ARIMA/SARIMAX forecast regeneration...');
       
-      const result = await multi12MonthForecastingService.triggerForecastGeneration();
+      const result = await forecastAutoRegenService.queueRegeneration(
+        `Fire resolved: ${fireId}`
+      );
       
       if (result.success) {
-        console.log(`✅ Forecast generation completed for resolved fire ${fireId}:`, result);
+        console.log(`✅ Forecast regeneration completed for resolved fire ${fireId}:`, result);
+      } else if (result.queued) {
+        console.log(`📋 Forecast regeneration queued for resolved fire ${fireId}`);
       } else {
-        console.log(`⚠️ Forecast generation failed for resolved fire ${fireId}:`, result.error);
+        console.log(`⚠️ Forecast regeneration failed for resolved fire ${fireId}:`, result.message);
       }
       
       return result;
