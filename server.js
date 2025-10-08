@@ -1083,6 +1083,71 @@ app.listen(PORT, HOST, () => {
   console.log('✅ Backend initialization complete');
 });
 
+// Database Damage Values Check - Investigate estimated_damage field issues
+app.get('/api/admin/check-damage-values', async (req, res) => {
+  try {
+    const db = require('./config/db');
+    const { month, year } = req.query;
+    const targetMonth = month ? parseInt(month) : 3;
+    const targetYear = year ? parseInt(year) : 2022;
+    
+    const startDate = new Date(targetYear, targetMonth - 1, 1);
+    const endDate = new Date(targetYear, targetMonth, 0);
+    
+    // Get all incidents with their raw estimated_damage values
+    const rawDataQuery = `
+      SELECT 
+        id,
+        barangay,
+        address,
+        reported_at,
+        estimated_damage,
+        CASE 
+          WHEN estimated_damage IS NULL THEN 'NULL'
+          WHEN estimated_damage::text = '' THEN 'EMPTY_STRING'
+          WHEN estimated_damage::text ~ '^[0-9]+\.?[0-9]*$' THEN 'VALID_NUMBER'
+          ELSE 'INVALID_FORMAT'
+        END as damage_status,
+        pg_typeof(estimated_damage) as data_type
+      FROM historical_fires 
+      WHERE reported_at >= $1 AND reported_at <= $2
+      ORDER BY reported_at ASC
+    `;
+    
+    const rawData = await db.query(rawDataQuery, [startDate, endDate]);
+    
+    // Count status types
+    const statusCounts = {};
+    rawData.rows.forEach(row => {
+      const status = row.damage_status;
+      statusCounts[status] = (statusCounts[status] || 0) + 1;
+    });
+    
+    res.json({
+      success: true,
+      month_year: `${targetMonth}/${targetYear}`,
+      total_incidents: rawData.rows.length,
+      damage_status_summary: statusCounts,
+      detailed_incidents: rawData.rows.map(row => ({
+        barangay: row.barangay,
+        address: row.address.substring(0, 50) + '...',
+        raw_damage_value: row.estimated_damage,
+        damage_status: row.damage_status,
+        data_type: row.data_type,
+        parsed_as_number: row.estimated_damage ? parseFloat(row.estimated_damage) : null,
+        is_nan: row.estimated_damage ? isNaN(parseFloat(row.estimated_damage)) : true
+      }))
+    });
+    
+  } catch (error) {
+    console.error('❌ Damage values check error:', error);
+    res.status(500).json({ 
+      error: 'Failed to check damage values: ' + error.message,
+      details: error.stack
+    });
+  }
+});
+
 // Database Schema Check - Verify actual column names
 app.get('/api/admin/check-schema', async (req, res) => {
   try {
