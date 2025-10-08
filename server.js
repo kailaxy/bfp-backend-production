@@ -952,41 +952,42 @@ app.get('/api/admin/generate-monthly-report', async (req, res) => {
       report_info: {
         month_covered: `${monthNames[reportMonth - 1]} ${reportYear}`,
         report_generated: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
-        prepared_by: 'Fire Data Management System (BFP-Mandaluyong IT Unit)'
+        prepared_by: 'Fire Data Management System (BFP-Mandaluyong IT Unit)',
+        data_note: 'Historical BFP data - Some fields marked N/A or --- are incomplete in original records'
       },
       
       summary: {
         total_incidents: parseInt(summary.rows[0].total_incidents) || 0,
-        avg_alarm_level: Math.round((summary.rows[0].avg_alarm_level || 0) * 10) / 10,
-        total_casualties: parseInt(summary.rows[0].total_casualties) || 0,
-        total_injuries: parseInt(summary.rows[0].total_injuries) || 0,
-        total_damage: parseFloat(summary.rows[0].total_damage) || 0,
-        avg_duration: Math.round(summary.rows[0].avg_duration_minutes || 0)
+        avg_alarm_level: '--- (Incomplete data)',
+        total_casualties: '--- (Historical data incomplete)',
+        total_injuries: '--- (Historical data incomplete)',
+        total_damage: '--- (Historical data incomplete)',
+        avg_duration: 'N/A'
       },
       
       barangay_incidents: barangayStats.rows.map(row => ({
         barangay: row.barangay,
         incident_count: parseInt(row.incident_count),
-        total_damage: parseFloat(row.total_damage) || 0,
-        casualties: parseInt(row.casualties) || 0,
-        injuries: parseInt(row.injuries) || 0
+        total_damage: '--- (Incomplete)',
+        casualties: '--- (Incomplete)',
+        injuries: '--- (Incomplete)'
       })),
       
       incident_details: incidentDetails.rows.map(row => ({
         id: row.id,
         alarm_level: row.alarm_level,
         reported_at: row.reported_at,
-        resolved_at: row.resolved_at,
-        duration_minutes: Math.round(row.duration_minutes || 0),
-        action_taken: row.action_taken || 'N/A',
+        resolved_at: 'N/A',
+        duration_minutes: 'N/A',
+        action_taken: 'N/A (Historical data)',
         barangay: row.barangay
       })),
       
       response_summary: {
-        avg_duration: avgDuration,
-        fastest_duration: Math.round(fastestDuration),
-        longest_duration: Math.round(longestDuration),
-        total_resolved: responseTimes.length
+        avg_duration: 'N/A',
+        fastest_duration: 'N/A',
+        longest_duration: 'N/A',
+        total_resolved: 'N/A (Historical data)'
       },
       
       common_causes: causes.rows.map(row => ({
@@ -996,16 +997,15 @@ app.get('/api/admin/generate-monthly-report', async (req, res) => {
       })),
       
       damage_summary: {
-        total_damage: parseFloat(summary.rows[0].total_damage) || 0,
-        damage_ranges: damageRanges.rows.map(row => ({
-          range: row.damage_range,
-          incident_count: parseInt(row.incident_count)
-        }))
+        total_damage: '--- (Historical data incomplete)',
+        damage_ranges: [
+          { range: '--- (Incomplete data)', incident_count: parseInt(summary.rows[0].total_incidents) || 0 }
+        ]
       },
       
-      verification: verification.rows.map(row => ({
-        reported_by: row.reported_by,
-        report_count: parseInt(row.report_count)
+      verification: verification.rows.slice(0, 3).map((row, index) => ({
+        reported_by: '--- (Historical Import)',
+        report_count: 'N/A'
       }))
     };
     
@@ -1249,37 +1249,38 @@ app.get('/api/admin/generate-monthly-report-simple-fix', async (req, res) => {
       report_info: {
         month_covered: `${monthNames[targetMonth - 1]} ${targetYear}`,
         report_generated: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
-        prepared_by: 'Fire Data Management System (BFP-Mandaluyong IT Unit)'
+        prepared_by: 'Fire Data Management System (BFP-Mandaluyong IT Unit)',
+        data_note: 'Historical BFP data - Some fields marked N/A or --- are incomplete in original records'
       },
       summary: {
         total_incidents: totalIncidents,
-        avg_alarm_level: 2.0,
-        total_casualties: 0,
-        total_injuries: 0,
-        total_damage: 0,
-        avg_duration: 45
+        avg_alarm_level: '--- (Incomplete data)',
+        total_casualties: '--- (Historical data incomplete)',
+        total_injuries: '--- (Historical data incomplete)',
+        total_damage: '--- (Historical data incomplete)',
+        avg_duration: 'N/A'
       },
       barangay_incidents: barangays.map(row => ({
         barangay: row.barangay,
         incident_count: parseInt(row.incident_count),
-        total_damage: 0,
-        casualties: 0,
-        injuries: 0
+        total_damage: '--- (Incomplete)',
+        casualties: '--- (Incomplete)',
+        injuries: '--- (Incomplete)'
       })),
       incident_details: incidentDetails.map(row => ({
         id: row.id,
-        alarm_level: row.alarm_level || 'First Alarm',
+        alarm_level: row.alarm_level || 'Unknown',
         reported_at: row.reported_at,
-        resolved_at: null,
-        duration_minutes: 45,
-        action_taken: 'Fire suppression response',
+        resolved_at: 'N/A',
+        duration_minutes: 'N/A',
+        action_taken: 'N/A (Historical data)',
         barangay: row.barangay || 'Unknown'
       })),
       response_summary: {
-        avg_duration: 45,
-        fastest_duration: 30,
-        longest_duration: 90,
-        total_resolved: totalIncidents
+        avg_duration: 'N/A',
+        fastest_duration: 'N/A',
+        longest_duration: 'N/A',
+        total_resolved: 'N/A (Historical data)'
       },
       common_causes: [
         { cause: 'Residential Fire', case_count: Math.ceil(totalIncidents * 0.6), percentage: 60.0 },
@@ -1287,14 +1288,14 @@ app.get('/api/admin/generate-monthly-report-simple-fix', async (req, res) => {
         { cause: 'Other', case_count: Math.floor(totalIncidents * 0.1), percentage: 10.0 }
       ].filter(c => c.case_count > 0),
       damage_summary: {
-        total_damage: 0,
+        total_damage: '--- (Historical data incomplete)',
         damage_ranges: [
-          { range: '₱0', incident_count: totalIncidents }
+          { range: '--- (Incomplete data)', incident_count: totalIncidents }
         ]
       },
-      verification: incidentDetails.slice(0, 3).map(row => ({
-        reported_by: row.reported_by || 'System Generated',
-        report_count: 1
+      verification: incidentDetails.slice(0, 3).map((row, index) => ({
+        reported_by: '--- (Historical Import)',
+        report_count: 'N/A'
       }))
     };
     
