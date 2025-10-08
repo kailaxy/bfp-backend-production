@@ -541,6 +541,55 @@ app.get('/api/diagnose-forecasts', async (req, res) => {
   }
 });
 
+// Test endpoint for debugging monthly report issues
+app.get('/api/admin/test-monthly-report', async (req, res) => {
+  try {
+    const db = require('./config/db');
+    
+    // Basic connection test
+    const basicTest = await db.query('SELECT NOW() as current_time');
+    
+    // Check table exists
+    const tableTest = await db.query(`
+      SELECT COUNT(*) as total_records 
+      FROM historical_fires 
+      WHERE reported_at IS NOT NULL
+    `);
+    
+    // Check date ranges
+    const dateTest = await db.query(`
+      SELECT 
+        MIN(reported_at) as earliest_date,
+        MAX(reported_at) as latest_date,
+        COUNT(*) as total
+      FROM historical_fires
+    `);
+    
+    // Check sample data
+    const sampleTest = await db.query(`
+      SELECT barangay, reported_at, alarm_level, estimated_damage
+      FROM historical_fires 
+      ORDER BY reported_at DESC 
+      LIMIT 3
+    `);
+    
+    res.json({
+      success: true,
+      database_time: basicTest.rows[0].current_time,
+      total_records: tableTest.rows[0].total_records,
+      date_range: dateTest.rows[0],
+      sample_data: sampleTest.rows
+    });
+    
+  } catch (error) {
+    console.error('Test endpoint error:', error);
+    res.status(500).json({ 
+      error: error.message,
+      stack: error.stack 
+    });
+  }
+});
+
 // Monthly Report Generation Endpoint
 app.get('/api/admin/generate-monthly-report', async (req, res) => {
   try {
