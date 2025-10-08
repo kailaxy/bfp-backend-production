@@ -546,39 +546,52 @@ app.get('/api/admin/test-monthly-report', async (req, res) => {
   try {
     const db = require('./config/db');
     
+    const startDate = new Date(2024, 11, 1); // December 2024
+    const endDate = new Date(2024, 11, 31);
+    
     // Basic connection test
     const basicTest = await db.query('SELECT NOW() as current_time');
     
-    // Check table exists
-    const tableTest = await db.query(`
-      SELECT COUNT(*) as total_records 
+    // Test basic count for December 2024
+    const countTest = await db.query(`
+      SELECT COUNT(*) as dec_2024_count
       FROM historical_fires 
-      WHERE reported_at IS NOT NULL
-    `);
+      WHERE reported_at >= $1 AND reported_at <= $2
+    `, [startDate, endDate]);
     
-    // Check date ranges
-    const dateTest = await db.query(`
+    // Test barangay query
+    const barangayTest = await db.query(`
       SELECT 
-        MIN(reported_at) as earliest_date,
-        MAX(reported_at) as latest_date,
-        COUNT(*) as total
-      FROM historical_fires
-    `);
-    
-    // Check sample data
-    const sampleTest = await db.query(`
-      SELECT barangay, reported_at, alarm_level, estimated_damage
+        barangay,
+        COUNT(*) as incident_count
       FROM historical_fires 
-      ORDER BY reported_at DESC 
+      WHERE reported_at >= $1 AND reported_at <= $2 AND barangay IS NOT NULL AND barangay != ''
+      GROUP BY barangay
+      ORDER BY incident_count DESC
       LIMIT 3
-    `);
+    `, [startDate, endDate]);
+    
+    // Test simple cause analysis
+    const causeTest = await db.query(`
+      SELECT 
+        CASE 
+          WHEN LOWER(COALESCE(address, '')) LIKE '%electrical%' THEN 'Electrical'
+          WHEN LOWER(COALESCE(address, '')) LIKE '%residential%' THEN 'Residential'
+          ELSE 'Other'
+        END as simple_cause,
+        COUNT(*) as count
+      FROM historical_fires 
+      WHERE reported_at >= $1 AND reported_at <= $2
+      GROUP BY simple_cause
+    `, [startDate, endDate]);
     
     res.json({
       success: true,
       database_time: basicTest.rows[0].current_time,
-      total_records: tableTest.rows[0].total_records,
-      date_range: dateTest.rows[0],
-      sample_data: sampleTest.rows
+      december_2024_incidents: countTest.rows[0].dec_2024_count,
+      top_barangays: barangayTest.rows,
+      simple_causes: causeTest.rows,
+      date_range_used: { startDate, endDate }
     });
     
   } catch (error) {
