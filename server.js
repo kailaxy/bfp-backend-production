@@ -679,11 +679,9 @@ app.get('/api/admin/generate-monthly-report-simple', async (req, res) => {
       causes = await db.query(causeQuery, [startDate, endDate]);
     }
     
-    // 4. Complete incident details - ALL incidents for the month
+    // 4. Sample incident details (only if we have incidents)
     let incidentDetails = { rows: [] };
-    let allIncidents = { rows: [] };
     if (totalIncidents > 0) {
-      // Sample for incident_details (5 most recent)
       const incidentDetailsQuery = `
         SELECT 
           id,
@@ -698,25 +696,6 @@ app.get('/api/admin/generate-monthly-report-simple', async (req, res) => {
         LIMIT 5
       `;
       incidentDetails = await db.query(incidentDetailsQuery, [startDate, endDate]);
-
-      // ALL incidents for complete table
-      const allIncidentsQuery = `
-        SELECT 
-          id,
-          barangay,
-          address,
-          alarm_level,
-          reported_at,
-          reported_by,
-          casualties,
-          injuries,
-          estimated_damage,
-          cause
-        FROM historical_fires 
-        WHERE reported_at >= $1 AND reported_at <= $2
-        ORDER BY reported_at DESC
-      `;
-      allIncidents = await db.query(allIncidentsQuery, [startDate, endDate]);
     }
     
     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
@@ -895,22 +874,20 @@ app.get('/api/admin/generate-monthly-report', async (req, res) => {
     `;
     
     const incidentDetails = await db.query(incidentDetailsQuery, [startDate, endDate]);
-
-    // 3.1. ALL incidents for complete table
+    
+    // 3b. Get ALL incidents for comprehensive table
     const allIncidentsQuery = `
       SELECT 
         id,
-        COALESCE(alarm_level, 'Unknown') as alarm_level,
-        reported_at,
         COALESCE(barangay, 'Unknown') as barangay,
         COALESCE(address, 'N/A') as address,
-        COALESCE(casualties, 0) as casualties,
-        COALESCE(injuries, 0) as injuries,
-        COALESCE(estimated_damage, 0) as estimated_damage,
-        COALESCE(cause, 'Unknown') as cause
+        COALESCE(alarm_level, 'Unknown') as alarm_level,
+        reported_at,
+        COALESCE(cause, 'N/A') as cause,
+        estimated_damage
       FROM historical_fires 
       WHERE reported_at >= $1 AND reported_at < $2
-      ORDER BY reported_at DESC
+      ORDER BY reported_at ASC
     `;
     
     const allIncidents = await db.query(allIncidentsQuery, [startDate, endDate]);
@@ -1047,24 +1024,15 @@ app.get('/api/admin/generate-monthly-report', async (req, res) => {
         reported_by: '--- (Historical Import)',
         report_count: 'N/A'
       })),
-
-      complete_incidents_table: allIncidents.rows.map((row, index) => ({
+      
+      all_incidents_table: allIncidents.rows.map((incident, index) => ({
         incident_number: index + 1,
-        date: new Date(row.reported_at).toLocaleDateString('en-US', { 
-          year: 'numeric', 
-          month: 'short', 
-          day: 'numeric' 
-        }),
-        barangay: row.barangay,
-        address: row.address,
-        alarm_level: row.alarm_level,
-        casualties: row.casualties || 'N/A',
-        injuries: row.injuries || 'N/A',
-        estimated_damage: row.estimated_damage && parseFloat(row.estimated_damage) > 0 
-          ? `₱${parseFloat(row.estimated_damage).toLocaleString()}` 
-          : 'N/A',
-        cause: row.cause,
-        incident_id: row.id
+        date: incident.reported_at,
+        barangay: incident.barangay,
+        address: incident.address,
+        alarm_level: incident.alarm_level,
+        cause: incident.cause,
+        estimated_damage: incident.estimated_damage ? `₱${parseFloat(incident.estimated_damage).toLocaleString()}` : 'N/A'
       }))
     };
     
@@ -1288,8 +1256,9 @@ app.get('/api/admin/generate-monthly-report-simple-fix', async (req, res) => {
       barangays = barangayResult.rows;
     }
     
-    // 3. Simple incident details (only if we have incidents)  
+    // 3. Get ALL incident details for the month (complete table)
     let incidentDetails = [];
+    let allIncidents = [];
     if (totalIncidents > 0) {
       const detailsResult = await db.query(
         `SELECT id, barangay, address, alarm_level, reported_at, reported_by
@@ -1299,6 +1268,16 @@ app.get('/api/admin/generate-monthly-report-simple-fix', async (req, res) => {
         [startDate, endDate]
       );
       incidentDetails = detailsResult.rows;
+      
+      // Get ALL incidents for the comprehensive table
+      const allIncidentsResult = await db.query(
+        `SELECT id, barangay, address, alarm_level, reported_at, cause, estimated_damage
+         FROM historical_fires 
+         WHERE reported_at >= $1 AND reported_at <= $2
+         ORDER BY reported_at ASC`,
+        [startDate, endDate]
+      );
+      allIncidents = allIncidentsResult.rows;
     }
     
     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
@@ -1356,21 +1335,14 @@ app.get('/api/admin/generate-monthly-report-simple-fix', async (req, res) => {
         reported_by: '--- (Historical Import)',
         report_count: 'N/A'
       })),
-      complete_incidents_table: allIncidents.rows.map((row, index) => ({
+      all_incidents_table: allIncidents.map((incident, index) => ({
         incident_number: index + 1,
-        date: new Date(row.reported_at).toLocaleDateString('en-US', { 
-          year: 'numeric', 
-          month: 'short', 
-          day: 'numeric' 
-        }),
-        barangay: row.barangay || 'Unknown',
-        address: row.address || 'N/A',
-        alarm_level: row.alarm_level || 'Unknown',
-        casualties: row.casualties || 'N/A',
-        injuries: row.injuries || 'N/A',
-        estimated_damage: row.estimated_damage ? `₱${parseFloat(row.estimated_damage).toLocaleString()}` : 'N/A',
-        cause: row.cause || 'Unknown',
-        incident_id: row.id
+        date: incident.reported_at,
+        barangay: incident.barangay || 'Unknown',
+        address: incident.address || 'N/A',
+        alarm_level: incident.alarm_level || 'Unknown',
+        cause: incident.cause || 'N/A',
+        estimated_damage: incident.estimated_damage ? `₱${parseFloat(incident.estimated_damage).toLocaleString()}` : 'N/A'
       }))
     };
     
