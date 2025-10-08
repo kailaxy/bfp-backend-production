@@ -1048,6 +1048,84 @@ app.listen(PORT, HOST, () => {
   console.log('✅ Backend initialization complete');
 });
 
+// Database Coverage Test - Check Full Historical Range
+app.get('/api/admin/database-coverage-test', async (req, res) => {
+  try {
+    const db = require('./config/db');
+    
+    console.log(`🔍 Testing full database coverage`);
+    
+    // Get full database range
+    const rangeQuery = `
+      SELECT 
+        COUNT(*) as total_records,
+        MIN(reported_at) as earliest_fire,
+        MAX(reported_at) as latest_fire,
+        COUNT(DISTINCT EXTRACT(YEAR FROM reported_at)) as years_covered
+      FROM historical_fires
+    `;
+    
+    const rangeResult = await db.query(rangeQuery);
+    
+    // Year distribution
+    const yearQuery = `
+      SELECT 
+        EXTRACT(YEAR FROM reported_at) as year,
+        COUNT(*) as incidents
+      FROM historical_fires 
+      GROUP BY year
+      ORDER BY year DESC
+    `;
+    
+    const yearResult = await db.query(yearQuery);
+    
+    // Recent months test (last 12 months with data)
+    const recentQuery = `
+      SELECT 
+        EXTRACT(YEAR FROM reported_at) as year,
+        EXTRACT(MONTH FROM reported_at) as month,
+        COUNT(*) as incidents
+      FROM historical_fires 
+      WHERE reported_at >= '2024-01-01' 
+      GROUP BY year, month
+      ORDER BY year DESC, month DESC
+    `;
+    
+    const recentResult = await db.query(recentQuery);
+    
+    const response = {
+      success: true,
+      database_coverage: {
+        total_records: parseInt(rangeResult.rows[0].total_records),
+        earliest_fire: rangeResult.rows[0].earliest_fire,
+        latest_fire: rangeResult.rows[0].latest_fire,
+        years_covered: parseInt(rangeResult.rows[0].years_covered),
+        date_span: `${new Date(rangeResult.rows[0].earliest_fire).getFullYear()} - ${new Date(rangeResult.rows[0].latest_fire).getFullYear()}`
+      },
+      year_distribution: yearResult.rows.map(row => ({
+        year: parseInt(row.year),
+        incidents: parseInt(row.incidents)
+      })),
+      recent_months_2024: recentResult.rows.map(row => ({
+        year: parseInt(row.year),
+        month: parseInt(row.month),
+        incidents: parseInt(row.incidents),
+        month_name: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][parseInt(row.month) - 1]
+      })),
+      system_status: "Monthly reports can generate for ANY month/year within the database range"
+    };
+    
+    console.log(`✅ Database coverage: ${response.database_coverage.total_records} records from ${response.database_coverage.date_span}`);
+    res.json(response);
+    
+  } catch (error) {
+    console.error('❌ Database coverage test error:', error);
+    res.status(500).json({ 
+      error: 'Failed to test database coverage: ' + error.message
+    });
+  }
+});
+
 // Simple Monthly Report (Fixed Version)
 app.get('/api/admin/generate-monthly-report-simple-fix', async (req, res) => {
   try {
