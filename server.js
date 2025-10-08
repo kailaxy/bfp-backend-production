@@ -1056,6 +1056,64 @@ app.listen(PORT, HOST, () => {
   console.log('✅ Backend initialization complete');
 });
 
+// Database Schema Check - Verify actual column names
+app.get('/api/admin/check-schema', async (req, res) => {
+  try {
+    const db = require('./config/db');
+    
+    // Get actual column names from the table
+    const schemaQuery = `
+      SELECT column_name, data_type, is_nullable
+      FROM information_schema.columns 
+      WHERE table_name = 'historical_fires'
+      ORDER BY ordinal_position
+    `;
+    
+    const schemaResult = await db.query(schemaQuery);
+    
+    // Get a sample row to see actual data
+    const sampleQuery = `
+      SELECT *
+      FROM historical_fires 
+      LIMIT 1
+    `;
+    
+    const sampleResult = await db.query(sampleQuery);
+    
+    // Get date range info with actual date column
+    const dateRangeQuery = `
+      SELECT 
+        MIN(reported_at) as min_date,
+        MAX(reported_at) as max_date,
+        COUNT(*) as total_records
+      FROM historical_fires
+    `;
+    
+    const dateRange = await db.query(dateRangeQuery);
+    
+    res.json({
+      success: true,
+      table_schema: schemaResult.rows,
+      sample_record: sampleResult.rows[0] || null,
+      date_range: dateRange.rows[0],
+      csv_vs_db_mapping: {
+        csv_columns: [
+          'DATE_CLEAN', 'LOCATION', 'TYPE OF OCCUPANCY', 'NATURE OF FIRE', 
+          'STATUS OF ALARM', 'CASUALTY', 'INJURY', 'ESTIMATED DAMAGE', 
+          'LOCATION_CLEAN', 'BARANGAY'
+        ],
+        note: "The database appears to use 'reported_at' for dates, but this may be synthetic data generated during import"
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Schema check error:', error);
+    res.status(500).json({ 
+      error: 'Failed to check schema: ' + error.message
+    });
+  }
+});
+
 // Database Coverage Test - Check Full Historical Range
 app.get('/api/admin/database-coverage-test', async (req, res) => {
   try {
