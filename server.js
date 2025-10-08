@@ -811,6 +811,11 @@ app.get('/api/admin/generate-monthly-report', async (req, res) => {
           WHEN LOWER(COALESCE(alarm_level, '')) LIKE '%3rd%' OR LOWER(COALESCE(alarm_level, '')) LIKE '%third%' THEN 3
           WHEN LOWER(COALESCE(alarm_level, '')) LIKE '%4th%' OR LOWER(COALESCE(alarm_level, '')) LIKE '%fourth%' THEN 4
           WHEN LOWER(COALESCE(alarm_level, '')) LIKE '%5th%' OR LOWER(COALESCE(alarm_level, '')) LIKE '%fifth%' THEN 5
+          WHEN LOWER(COALESCE(alarm_level, '')) LIKE '%task%force%alpha%' THEN 6
+          WHEN LOWER(COALESCE(alarm_level, '')) LIKE '%task%force%bravo%' THEN 7
+          WHEN LOWER(COALESCE(alarm_level, '')) LIKE '%task%force%charlie%' THEN 8
+          WHEN LOWER(COALESCE(alarm_level, '')) LIKE '%task%force%delta%' THEN 9
+          WHEN LOWER(COALESCE(alarm_level, '')) LIKE '%general%alarm%' THEN 10
           ELSE NULL END) as avg_alarm_level,
         COALESCE(SUM(CASE WHEN casualties IS NOT NULL AND casualties::text != '' AND casualties > 0 THEN casualties ELSE 0 END), 0) as total_casualties,
         COALESCE(SUM(CASE WHEN injuries IS NOT NULL AND injuries::text != '' AND injuries > 0 THEN injuries ELSE 0 END), 0) as total_injuries,
@@ -1312,6 +1317,11 @@ app.get('/api/admin/generate-monthly-report-simple-fix', async (req, res) => {
           WHEN LOWER(COALESCE(alarm_level, '')) LIKE '%3rd%' OR LOWER(COALESCE(alarm_level, '')) LIKE '%third%' THEN 3
           WHEN LOWER(COALESCE(alarm_level, '')) LIKE '%4th%' OR LOWER(COALESCE(alarm_level, '')) LIKE '%fourth%' THEN 4
           WHEN LOWER(COALESCE(alarm_level, '')) LIKE '%5th%' OR LOWER(COALESCE(alarm_level, '')) LIKE '%fifth%' THEN 5
+          WHEN LOWER(COALESCE(alarm_level, '')) LIKE '%task%force%alpha%' THEN 6
+          WHEN LOWER(COALESCE(alarm_level, '')) LIKE '%task%force%bravo%' THEN 7
+          WHEN LOWER(COALESCE(alarm_level, '')) LIKE '%task%force%charlie%' THEN 8
+          WHEN LOWER(COALESCE(alarm_level, '')) LIKE '%task%force%delta%' THEN 9
+          WHEN LOWER(COALESCE(alarm_level, '')) LIKE '%general%alarm%' THEN 10
           ELSE NULL END) as avg_alarm_level,
         COALESCE(SUM(CASE 
           WHEN estimated_damage IS NOT NULL AND estimated_damage != 0 
