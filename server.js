@@ -623,9 +623,11 @@ app.get('/api/admin/generate-monthly-report-simple', async (req, res) => {
 
     console.log(`📊 Generating REAL monthly report for ${reportYear}-${reportMonth.toString().padStart(2, '0')}`);
 
-    // Date range for the report month (using <= for end date to be inclusive)
+    // Date range for the report month
     const startDate = new Date(reportYear, reportMonth - 1, 1);
-    const endDate = new Date(reportYear, reportMonth - 1 + 1, 0); // Last day of the month
+    const endDate = new Date(reportYear, reportMonth, 0);
+    
+    console.log(`📅 Date range: ${startDate.toISOString()} to ${endDate.toISOString()}`);
     
     // 1. Basic incident count
     const countQuery = `
@@ -792,6 +794,8 @@ app.get('/api/admin/generate-monthly-report', async (req, res) => {
     // Date range for the report month
     const startDate = new Date(reportYear, reportMonth - 1, 1);
     const endDate = new Date(reportYear, reportMonth, 0);
+    
+    console.log(`📅 MAIN Report date range: ${startDate.toISOString()} to ${endDate.toISOString()}`);
     
     // 1. Summary of Fire Incidents
     const summaryQuery = `
