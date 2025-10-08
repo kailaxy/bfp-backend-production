@@ -541,6 +541,225 @@ app.get('/api/diagnose-forecasts', async (req, res) => {
   }
 });
 
+// Monthly Report Generation Endpoint
+app.get('/api/admin/generate-monthly-report', async (req, res) => {
+  try {
+    const { month, year } = req.query;
+    const currentDate = new Date();
+    const targetMonth = month ? parseInt(month) : currentDate.getMonth() + 1;
+    const targetYear = year ? parseInt(year) : currentDate.getFullYear();
+    
+    // Default to previous month if current month is requested (to ensure complete data)
+    let reportMonth = targetMonth;
+    let reportYear = targetYear;
+    
+    if (targetMonth === currentDate.getMonth() + 1 && targetYear === currentDate.getFullYear()) {
+      reportMonth = targetMonth === 1 ? 12 : targetMonth - 1;
+      reportYear = targetMonth === 1 ? targetYear - 1 : targetYear;
+    }
+
+    console.log(`📊 Generating monthly report for ${reportYear}-${reportMonth.toString().padStart(2, '0')}`);
+
+    // Date range for the report month
+    const startDate = new Date(reportYear, reportMonth - 1, 1);
+    const endDate = new Date(reportYear, reportMonth, 0);
+    
+    // 1. Summary of Fire Incidents
+    const summaryQuery = `
+      SELECT 
+        COUNT(*) as total_incidents,
+        AVG(CASE WHEN alarm_level = 'AL1' THEN 1 WHEN alarm_level = 'AL2' THEN 2 WHEN alarm_level = 'AL3' THEN 3 WHEN alarm_level = 'AL4' THEN 4 ELSE 0 END) as avg_alarm_level,
+        SUM(CASE WHEN casualties > 0 THEN casualties ELSE 0 END) as total_casualties,
+        SUM(CASE WHEN injuries > 0 THEN injuries ELSE 0 END) as total_injuries,
+        SUM(CASE WHEN estimated_damage > 0 THEN estimated_damage ELSE 0 END) as total_damage,
+        AVG(CASE WHEN resolved_at IS NOT NULL AND reported_at IS NOT NULL 
+                 THEN EXTRACT(EPOCH FROM (resolved_at - reported_at))/60 
+                 ELSE NULL END) as avg_duration_minutes
+      FROM historical_fires 
+      WHERE reported_at >= $1 AND reported_at < $2
+    `;
+    
+    const summary = await db.query(summaryQuery, [startDate, endDate]);
+    
+    // 2. Incidents by Barangay
+    const barangayQuery = `
+      SELECT 
+        barangay,
+        COUNT(*) as incident_count,
+        SUM(CASE WHEN estimated_damage > 0 THEN estimated_damage ELSE 0 END) as total_damage,
+        SUM(CASE WHEN casualties > 0 THEN casualties ELSE 0 END) as casualties,
+        SUM(CASE WHEN injuries > 0 THEN injuries ELSE 0 END) as injuries
+      FROM historical_fires 
+      WHERE reported_at >= $1 AND reported_at < $2
+      GROUP BY barangay
+      ORDER BY incident_count DESC, total_damage DESC
+      LIMIT 10
+    `;
+    
+    const barangayStats = await db.query(barangayQuery, [startDate, endDate]);
+    
+    // 3. Response and Resolution Summary (sample incidents)
+    const incidentDetailsQuery = `
+      SELECT 
+        id,
+        alarm_level,
+        reported_at,
+        resolved_at,
+        CASE WHEN resolved_at IS NOT NULL AND reported_at IS NOT NULL 
+             THEN EXTRACT(EPOCH FROM (resolved_at - reported_at))/60 
+             ELSE NULL END as duration_minutes,
+        action_taken,
+        barangay
+      FROM historical_fires 
+      WHERE reported_at >= $1 AND reported_at < $2
+        AND resolved_at IS NOT NULL
+      ORDER BY reported_at DESC
+      LIMIT 10
+    `;
+    
+    const incidentDetails = await db.query(incidentDetailsQuery, [startDate, endDate]);
+    
+    // 4. Common Causes (if we have cause data - using placeholder for now)
+    const causesQuery = `
+      SELECT 
+        CASE 
+          WHEN LOWER(address) LIKE '%electrical%' OR LOWER(action_taken) LIKE '%electrical%' THEN 'Electrical Fault'
+          WHEN LOWER(address) LIKE '%cooking%' OR LOWER(action_taken) LIKE '%cooking%' THEN 'Unattended Cooking'
+          WHEN LOWER(address) LIKE '%cigarette%' OR LOWER(action_taken) LIKE '%cigarette%' THEN 'Cigarette Ignition'
+          WHEN LOWER(address) LIKE '%lpg%' OR LOWER(action_taken) LIKE '%lpg%' OR LOWER(action_taken) LIKE '%gas%' THEN 'LPG Leakage'
+          ELSE 'Undetermined'
+        END as cause,
+        COUNT(*) as case_count
+      FROM historical_fires 
+      WHERE reported_at >= $1 AND reported_at < $2
+      GROUP BY cause
+      ORDER BY case_count DESC
+    `;
+    
+    const causes = await db.query(causesQuery, [startDate, endDate]);
+    
+    // 5. Damage Summary by ranges
+    const damageRangesQuery = `
+      SELECT 
+        CASE 
+          WHEN estimated_damage = 0 OR estimated_damage IS NULL THEN '₱0'
+          WHEN estimated_damage <= 100000 THEN '₱0 – ₱100,000'
+          WHEN estimated_damage <= 500000 THEN '₱100,001 – ₱500,000'
+          ELSE '₱500,001 and above'
+        END as damage_range,
+        COUNT(*) as incident_count
+      FROM historical_fires 
+      WHERE reported_at >= $1 AND reported_at < $2
+      GROUP BY damage_range
+      ORDER BY 
+        CASE damage_range
+          WHEN '₱0' THEN 1
+          WHEN '₱0 – ₱100,000' THEN 2
+          WHEN '₱100,001 – ₱500,000' THEN 3
+          ELSE 4
+        END
+    `;
+    
+    const damageRanges = await db.query(damageRangesQuery, [startDate, endDate]);
+    
+    // 6. Verification and Documentation stats
+    const verificationQuery = `
+      SELECT 
+        reported_by,
+        COUNT(*) as report_count
+      FROM historical_fires 
+      WHERE reported_at >= $1 AND reported_at < $2
+      GROUP BY reported_by
+      ORDER BY report_count DESC
+      LIMIT 10
+    `;
+    
+    const verification = await db.query(verificationQuery, [startDate, endDate]);
+    
+    // Calculate response times
+    const responseTimes = incidentDetails.rows.filter(r => r.duration_minutes != null);
+    const avgDuration = responseTimes.length > 0 ? 
+      Math.round(responseTimes.reduce((sum, r) => sum + r.duration_minutes, 0) / responseTimes.length) : 0;
+    const fastestDuration = responseTimes.length > 0 ? Math.min(...responseTimes.map(r => r.duration_minutes)) : 0;
+    const longestDuration = responseTimes.length > 0 ? Math.max(...responseTimes.map(r => r.duration_minutes)) : 0;
+    
+    // Month names
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'];
+    
+    const report = {
+      report_info: {
+        month_covered: `${monthNames[reportMonth - 1]} ${reportYear}`,
+        report_generated: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+        prepared_by: 'Fire Data Management System (BFP-Mandaluyong IT Unit)'
+      },
+      
+      summary: {
+        total_incidents: parseInt(summary.rows[0].total_incidents) || 0,
+        avg_alarm_level: Math.round((summary.rows[0].avg_alarm_level || 0) * 10) / 10,
+        total_casualties: parseInt(summary.rows[0].total_casualties) || 0,
+        total_injuries: parseInt(summary.rows[0].total_injuries) || 0,
+        total_damage: parseFloat(summary.rows[0].total_damage) || 0,
+        avg_duration: Math.round(summary.rows[0].avg_duration_minutes || 0)
+      },
+      
+      barangay_incidents: barangayStats.rows.map(row => ({
+        barangay: row.barangay,
+        incident_count: parseInt(row.incident_count),
+        total_damage: parseFloat(row.total_damage) || 0,
+        casualties: parseInt(row.casualties) || 0,
+        injuries: parseInt(row.injuries) || 0
+      })),
+      
+      incident_details: incidentDetails.rows.map(row => ({
+        id: row.id,
+        alarm_level: row.alarm_level,
+        reported_at: row.reported_at,
+        resolved_at: row.resolved_at,
+        duration_minutes: Math.round(row.duration_minutes || 0),
+        action_taken: row.action_taken || 'N/A',
+        barangay: row.barangay
+      })),
+      
+      response_summary: {
+        avg_duration: avgDuration,
+        fastest_duration: Math.round(fastestDuration),
+        longest_duration: Math.round(longestDuration),
+        total_resolved: responseTimes.length
+      },
+      
+      common_causes: causes.rows.map(row => ({
+        cause: row.cause,
+        case_count: parseInt(row.case_count),
+        percentage: Math.round((row.case_count / (summary.rows[0].total_incidents || 1)) * 100 * 10) / 10
+      })),
+      
+      damage_summary: {
+        total_damage: parseFloat(summary.rows[0].total_damage) || 0,
+        damage_ranges: damageRanges.rows.map(row => ({
+          range: row.damage_range,
+          incident_count: parseInt(row.incident_count)
+        }))
+      },
+      
+      verification: verification.rows.map(row => ({
+        reported_by: row.reported_by,
+        report_count: parseInt(row.report_count)
+      }))
+    };
+    
+    console.log(`✅ Generated report for ${report.report_info.month_covered} with ${report.summary.total_incidents} incidents`);
+    res.json(report);
+    
+  } catch (error) {
+    console.error('❌ Monthly report generation error:', error);
+    res.status(500).json({ 
+      error: 'Failed to generate monthly report: ' + error.message,
+      stack: error.stack 
+    });
+  }
+});
+
 // Start server
 app.listen(PORT, HOST, () => {
   console.log(`🚀 BFP Backend Server started successfully!`);
