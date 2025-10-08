@@ -263,4 +263,76 @@ router.delete('/:year/:month', authenticateJWT, requireAdmin, async (req, res) =
   }
 });
 
+/**
+ * POST /api/forecasts/generate-enhanced
+ * Generate forecasts using enhanced ARIMA/SARIMAX models (Admin only)
+ * This uses the improved Colab-based forecasting system
+ */
+router.post('/generate-enhanced', authenticateJWT, requireAdmin, async (req, res) => {
+  try {
+    const enhancedForecastService = require('../services/enhancedForecastService');
+    
+    const { 
+      forecastMonths = 12, 
+      targetDate = null,
+      keepTempFiles = false 
+    } = req.body;
+
+    console.log(`🚀 Enhanced forecast generation requested by ${req.user.username}`);
+    console.log(`   Forecast months: ${forecastMonths}`);
+    console.log(`   Target date: ${targetDate || 'auto'}`);
+
+    // Generate forecasts
+    const result = await enhancedForecastService.generateForecasts({
+      forecastMonths,
+      targetDate,
+      keepTempFiles
+    });
+
+    res.json({
+      message: 'Enhanced forecasts generated successfully',
+      ...result
+    });
+
+  } catch (error) {
+    console.error('❌ Error in enhanced forecast generation:', error);
+    res.status(500).json({ 
+      error: error.message || 'Failed to generate enhanced forecasts',
+      details: error.stack
+    });
+  }
+});
+
+/**
+ * GET /api/forecasts/models/summary
+ * Get summary of models used for each barangay (Admin only)
+ */
+router.get('/models/summary', authenticateJWT, requireAdmin, async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        barangay,
+        model_used,
+        COUNT(*) as forecast_count,
+        MIN(forecast_month) as earliest_forecast,
+        MAX(forecast_month) as latest_forecast,
+        AVG(predicted_cases) as avg_predicted_cases
+      FROM arima_forecasts
+      GROUP BY barangay, model_used
+      ORDER BY barangay, model_used
+    `;
+
+    const result = await db.query(query);
+
+    res.json({
+      models: result.rows,
+      total_barangays: new Set(result.rows.map(r => r.barangay)).size
+    });
+
+  } catch (error) {
+    console.error('Error fetching models summary:', error);
+    res.status(500).json({ error: 'Failed to fetch models summary' });
+  }
+});
+
 module.exports = router;
