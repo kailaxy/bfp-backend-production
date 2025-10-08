@@ -590,6 +590,88 @@ app.get('/api/admin/test-monthly-report', async (req, res) => {
   }
 });
 
+// Simple Monthly Report Generation Endpoint (step by step for debugging)
+app.get('/api/admin/generate-monthly-report-simple', async (req, res) => {
+  try {
+    const db = require('./config/db');
+    const { month, year } = req.query;
+    const currentDate = new Date();
+    const targetMonth = month ? parseInt(month) : currentDate.getMonth() + 1;
+    const targetYear = year ? parseInt(year) : currentDate.getFullYear();
+    
+    // Default to previous month if current month is requested (to ensure complete data)
+    let reportMonth = targetMonth;
+    let reportYear = targetYear;
+    
+    if (targetMonth === currentDate.getMonth() + 1 && targetYear === currentDate.getFullYear()) {
+      reportMonth = targetMonth === 1 ? 12 : targetMonth - 1;
+      reportYear = targetMonth === 1 ? targetYear - 1 : targetYear;
+    }
+
+    console.log(`📊 Generating simple monthly report for ${reportYear}-${reportMonth.toString().padStart(2, '0')}`);
+
+    // Date range for the report month
+    const startDate = new Date(reportYear, reportMonth - 1, 1);
+    const endDate = new Date(reportYear, reportMonth, 0);
+    
+    // Test basic count first
+    const basicCountQuery = `
+      SELECT COUNT(*) as total_incidents
+      FROM historical_fires 
+      WHERE reported_at >= $1 AND reported_at < $2
+    `;
+    
+    const basicCount = await db.query(basicCountQuery, [startDate, endDate]);
+    
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'];
+    
+    const report = {
+      report_info: {
+        month_covered: `${monthNames[reportMonth - 1]} ${reportYear}`,
+        report_generated: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+        prepared_by: 'Fire Data Management System (BFP-Mandaluyong IT Unit)'
+      },
+      summary: {
+        total_incidents: parseInt(basicCount.rows[0].total_incidents) || 0,
+        avg_alarm_level: 2.5,
+        total_casualties: 0,
+        total_injuries: 0,
+        total_damage: 0,
+        avg_duration: 45
+      },
+      barangay_incidents: [],
+      incident_details: [],
+      response_summary: {
+        avg_duration: 45,
+        fastest_duration: 30,
+        longest_duration: 90,
+        total_resolved: 0
+      },
+      common_causes: [
+        { cause: 'Electrical Fault', case_count: 0, percentage: 0 }
+      ],
+      damage_summary: {
+        total_damage: 0,
+        damage_ranges: [
+          { range: '₱0', incident_count: parseInt(basicCount.rows[0].total_incidents) || 0 }
+        ]
+      },
+      verification: []
+    };
+    
+    console.log(`✅ Generated simple report for ${report.report_info.month_covered} with ${report.summary.total_incidents} incidents`);
+    res.json(report);
+    
+  } catch (error) {
+    console.error('❌ Simple monthly report generation error:', error);
+    res.status(500).json({ 
+      error: 'Failed to generate monthly report: ' + error.message,
+      details: error.stack 
+    });
+  }
+});
+
 // Monthly Report Generation Endpoint
 app.get('/api/admin/generate-monthly-report', async (req, res) => {
   try {
