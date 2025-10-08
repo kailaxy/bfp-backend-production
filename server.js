@@ -654,21 +654,25 @@ app.get('/api/admin/generate-monthly-report-simple', async (req, res) => {
       barangays = await db.query(barangayQuery, [startDate, endDate]);
     }
     
-    // 3. Simple cause analysis based on location type
+    // 3. Simple cause analysis based on location type (fixed GROUP BY)
     let causes = { rows: [] };
     if (totalIncidents > 0) {
       const causeQuery = `
         SELECT 
-          CASE 
-            WHEN LOWER(COALESCE(address, '')) LIKE '%residential%' OR LOWER(COALESCE(address, '')) LIKE '%brgy%' THEN 'Residential Fire'
-            WHEN LOWER(COALESCE(address, '')) LIKE '%commercial%' OR LOWER(COALESCE(address, '')) LIKE '%mall%' OR LOWER(COALESCE(address, '')) LIKE '%store%' THEN 'Commercial Fire'
-            WHEN LOWER(COALESCE(address, '')) LIKE '%edsa%' OR LOWER(COALESCE(address, '')) LIKE '%highway%' OR LOWER(COALESCE(address, '')) LIKE '%station%' THEN 'Transport/Infrastructure'
-            WHEN LOWER(COALESCE(address, '')) LIKE '%condominium%' OR LOWER(COALESCE(address, '')) LIKE '%building%' OR LOWER(COALESCE(address, '')) LIKE '%unit%' THEN 'High-Rise Building'
-            ELSE 'Residential/Community Fire'
-          END as cause,
+          cause,
           COUNT(*) as case_count
-        FROM historical_fires 
-        WHERE reported_at >= $1 AND reported_at <= $2
+        FROM (
+          SELECT 
+            CASE 
+              WHEN LOWER(COALESCE(address, '')) LIKE '%residential%' OR LOWER(COALESCE(address, '')) LIKE '%brgy%' THEN 'Residential Fire'
+              WHEN LOWER(COALESCE(address, '')) LIKE '%commercial%' OR LOWER(COALESCE(address, '')) LIKE '%mall%' OR LOWER(COALESCE(address, '')) LIKE '%store%' THEN 'Commercial Fire'
+              WHEN LOWER(COALESCE(address, '')) LIKE '%edsa%' OR LOWER(COALESCE(address, '')) LIKE '%highway%' OR LOWER(COALESCE(address, '')) LIKE '%station%' THEN 'Transport/Infrastructure'
+              WHEN LOWER(COALESCE(address, '')) LIKE '%condominium%' OR LOWER(COALESCE(address, '')) LIKE '%building%' OR LOWER(COALESCE(address, '')) LIKE '%unit%' THEN 'High-Rise Building'
+              ELSE 'Residential/Community Fire'
+            END as cause
+          FROM historical_fires 
+          WHERE reported_at >= $1 AND reported_at <= $2
+        ) cause_analysis
         GROUP BY cause
         ORDER BY case_count DESC
       `;
@@ -871,19 +875,23 @@ app.get('/api/admin/generate-monthly-report', async (req, res) => {
     
     const incidentDetails = await db.query(incidentDetailsQuery, [startDate, endDate]);
     
-    // 4. Common Causes (if we have cause data - using placeholder for now)
+    // 4. Common Causes (fixed GROUP BY clause)
     const causesQuery = `
       SELECT 
-        CASE 
-          WHEN LOWER(COALESCE(address, '')) LIKE '%electrical%' OR LOWER(COALESCE(actions_taken, '')) LIKE '%electrical%' THEN 'Electrical Fault'
-          WHEN LOWER(COALESCE(address, '')) LIKE '%cooking%' OR LOWER(COALESCE(actions_taken, '')) LIKE '%cooking%' THEN 'Unattended Cooking'
-          WHEN LOWER(COALESCE(address, '')) LIKE '%cigarette%' OR LOWER(COALESCE(actions_taken, '')) LIKE '%cigarette%' THEN 'Cigarette Ignition'
-          WHEN LOWER(COALESCE(address, '')) LIKE '%lpg%' OR LOWER(COALESCE(actions_taken, '')) LIKE '%lpg%' OR LOWER(COALESCE(actions_taken, '')) LIKE '%gas%' THEN 'LPG Leakage'
-          ELSE 'Undetermined'
-        END as cause,
+        cause,
         COUNT(*) as case_count
-      FROM historical_fires 
-      WHERE reported_at >= $1 AND reported_at < $2
+      FROM (
+        SELECT 
+          CASE 
+            WHEN LOWER(COALESCE(address, '')) LIKE '%electrical%' OR LOWER(COALESCE(actions_taken, '')) LIKE '%electrical%' THEN 'Electrical Fault'
+            WHEN LOWER(COALESCE(address, '')) LIKE '%cooking%' OR LOWER(COALESCE(actions_taken, '')) LIKE '%cooking%' THEN 'Unattended Cooking'
+            WHEN LOWER(COALESCE(address, '')) LIKE '%cigarette%' OR LOWER(COALESCE(actions_taken, '')) LIKE '%cigarette%' THEN 'Cigarette Ignition'
+            WHEN LOWER(COALESCE(address, '')) LIKE '%lpg%' OR LOWER(COALESCE(actions_taken, '')) LIKE '%lpg%' OR LOWER(COALESCE(actions_taken, '')) LIKE '%gas%' THEN 'LPG Leakage'
+            ELSE 'Undetermined'
+          END as cause
+        FROM historical_fires 
+        WHERE reported_at >= $1 AND reported_at < $2
+      ) cause_analysis
       GROUP BY cause
       ORDER BY case_count DESC
     `;
