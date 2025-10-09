@@ -1,0 +1,36 @@
+# Prevent Python source packages from being deployed
+numpy/
+pandas/
+scipy/
+statsmodels/
+sklearn/
+*.egg-info/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Node modules
+node_modules/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Build artifacts
+dist/
+build/
+coverage/
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# Temp files
+temp/
+*.tmp
