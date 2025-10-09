@@ -354,6 +354,30 @@ router.delete('/:year/:month', authenticateJWT, requireAdmin, async (req, res) =
 });
 
 /**
+ * DELETE /api/forecasts/clear
+ * Clear all forecasts from database (Admin only)
+ */
+router.delete('/clear', authenticateJWT, requireAdmin, async (req, res) => {
+  try {
+    console.log('🗑️  Clearing all forecasts...');
+    const result = await db.query('DELETE FROM forecasts');
+    console.log(`✅ Cleared ${result.rowCount} forecast records`);
+    
+    res.json({
+      success: true,
+      message: `Cleared ${result.rowCount} forecast records`,
+      cleared_count: result.rowCount
+    });
+  } catch (error) {
+    console.error('❌ Error clearing forecasts:', error);
+    res.status(500).json({
+      error: 'Failed to clear forecasts',
+      details: error.message
+    });
+  }
+});
+
+/**
  * POST /api/forecasts/generate-enhanced
  * Generate forecasts using enhanced ARIMA/SARIMAX models (Admin only)
  * This uses the improved Colab-based forecasting system
@@ -363,7 +387,7 @@ router.post('/generate-enhanced', authenticateJWT, requireAdmin, async (req, res
     const enhancedForecastService = require('../services/enhancedForecastService');
     
     const { 
-      forecastMonths = 12, 
+      forecastMonths = 13, // 13 months to include both start and end month (Oct 2025 - Oct 2026)
       targetDate = null,
       keepTempFiles = false 
     } = req.body;

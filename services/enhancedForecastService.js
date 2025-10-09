@@ -62,7 +62,7 @@ class EnhancedForecastService {
   /**
    * Prepare input JSON for Python script
    */
-  async prepareInputFile(historicalData, forecastMonths = 12, targetDate = null) {
+  async prepareInputFile(historicalData, forecastMonths = 13, targetDate = null) {
     await this.ensureTempDir();
 
     const now = new Date();

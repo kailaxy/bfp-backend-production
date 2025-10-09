@@ -394,7 +394,7 @@ def main():
     
     # Parse parameters
     historical_data = input_data.get('historical_data', [])
-    forecast_months = input_data.get('forecast_months', 12)
+    forecast_months = input_data.get('forecast_months', 13)  # 13 months to include both start and end month
     target_date_str = input_data.get('target_date', '2025-12-01')
     forecast_start_str = input_data.get('forecast_start', None)
     
