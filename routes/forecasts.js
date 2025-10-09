@@ -6,6 +6,62 @@ const authenticateJWT = require('../middleware/auth');
 const requireAdmin = require('../middleware/admin');
 
 /**
+ * GET /api/forecasts/arima/all
+ * Get all ARIMA forecasts grouped by barangay (Admin only)
+ * NOTE: This route MUST be before /:year/:month to avoid path collision
+ */
+router.get('/arima/all', authenticateJWT, requireAdmin, async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        barangay,
+        forecast_month,
+        predicted_cases,
+        lower_bound,
+        upper_bound,
+        risk_level,
+        model_used,
+        created_at
+      FROM arima_forecasts
+      ORDER BY barangay, forecast_month
+    `;
+
+    const result = await db.query(query);
+
+    // Group by barangay
+    const grouped = {};
+    result.rows.forEach(row => {
+      if (!grouped[row.barangay]) {
+        grouped[row.barangay] = {
+          barangay: row.barangay,
+          forecasts: []
+        };
+      }
+      grouped[row.barangay].forecasts.push({
+        month: row.forecast_month,
+        predicted_cases: parseFloat(row.predicted_cases),
+        lower_bound: parseFloat(row.lower_bound),
+        upper_bound: parseFloat(row.upper_bound),
+        risk_level: row.risk_level,
+        model_used: row.model_used
+      });
+    });
+
+    const barangays = Object.values(grouped);
+
+    res.json({
+      barangays,
+      total: barangays.length,
+      last_updated: result.rows.length > 0 ? result.rows[0].created_at : null
+    });
+
+  } catch (error) {
+    console.error('Error fetching ARIMA forecasts:', error);
+    res.status(500).json({ error: 'Failed to fetch ARIMA forecasts' });
+  }
+});
+
+/**
  * GET /api/forecasts/:year/:month
  * Get fire risk forecasts for a specific month/year
  */
@@ -260,61 +316,6 @@ router.delete('/:year/:month', authenticateJWT, requireAdmin, async (req, res) =
   } catch (error) {
     console.error('Error deleting forecasts:', error);
     res.status(500).json({ error: 'Failed to delete forecasts' });
-  }
-});
-
-/**
- * GET /api/forecasts/arima/all
- * Get all ARIMA forecasts grouped by barangay (Admin only)
- */
-router.get('/arima/all', authenticateJWT, requireAdmin, async (req, res) => {
-  try {
-    const query = `
-      SELECT 
-        barangay,
-        forecast_month,
-        predicted_cases,
-        lower_bound,
-        upper_bound,
-        risk_level,
-        model_used,
-        created_at
-      FROM arima_forecasts
-      ORDER BY barangay, forecast_month
-    `;
-
-    const result = await db.query(query);
-
-    // Group by barangay
-    const grouped = {};
-    result.rows.forEach(row => {
-      if (!grouped[row.barangay]) {
-        grouped[row.barangay] = {
-          barangay: row.barangay,
-          forecasts: []
-        };
-      }
-      grouped[row.barangay].forecasts.push({
-        month: row.forecast_month,
-        predicted_cases: parseFloat(row.predicted_cases),
-        lower_bound: parseFloat(row.lower_bound),
-        upper_bound: parseFloat(row.upper_bound),
-        risk_level: row.risk_level,
-        model_used: row.model_used
-      });
-    });
-
-    const barangays = Object.values(grouped);
-
-    res.json({
-      barangays,
-      total: barangays.length,
-      last_updated: result.rows.length > 0 ? result.rows[0].created_at : null
-    });
-
-  } catch (error) {
-    console.error('Error fetching ARIMA forecasts:', error);
-    res.status(500).json({ error: 'Failed to fetch ARIMA forecasts' });
   }
 });
 
