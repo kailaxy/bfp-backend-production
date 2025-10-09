@@ -1,10 +1,11 @@
 # ==============================
-# Enhanced ARIMA + SARIMAX Forecast System for BFP Backend
+# Enhanced SARIMAX + ARIMA Forecast System for BFP Backend
 # Based on Colab experiments with improvements
 # ==============================
 """
-Enhanced ARIMA/SARIMAX Fire Forecasting System
-- Automatic model selection (ARIMA vs SARIMAX)
+Enhanced SARIMAX/ARIMA Fire Forecasting System
+- PRIORITY: SARIMAX (seasonal model) as primary approach
+- FALLBACK: ARIMA only if SARIMAX fails
 - Square-root transformation for variance stabilization
 - Fallback mechanisms for robust forecasting
 - ADF stationarity testing
@@ -220,82 +221,65 @@ def generate_barangay_forecast(y_original, y_transformed, barangay_name, forecas
     train = y_transformed[:-6] if len(y_transformed) > 6 else y_transformed
     test = y_transformed[-6:] if len(y_transformed) > 6 else pd.Series()
     
-    # Try SARIMAX first (seasonal model)
+    # PRIORITY: Try SARIMAX first (seasonal model - primary approach)
     sarimax_fit, sarimax_order, sarimax_seasonal = fit_best_sarimax(train)
     
-    # Try ARIMA as alternative
-    arima_fit, arima_order, _ = fit_best_arima(train)
+    # FALLBACK: Only try ARIMA if SARIMAX fails
+    arima_fit = None
+    arima_order = None
     
-    # Compare models if both succeeded
     selected_fit = None
     model_info = {}
     
-    if sarimax_fit is not None and arima_fit is not None:
-        # Calculate validation RMSE
+    if sarimax_fit is not None:
+        # SARIMAX succeeded - use it as primary model
+        selected_fit = sarimax_fit
         if len(test) > 0:
             sarimax_forecast_test = sarimax_fit.forecast(steps=len(test))
-            arima_forecast_test = arima_fit.forecast(steps=len(test))
-            
             sarimax_rmse = np.sqrt(mean_squared_error(test, sarimax_forecast_test))
-            arima_rmse = np.sqrt(mean_squared_error(test, arima_forecast_test))
-            
-            # Select based on RMSE
-            if sarimax_rmse <= arima_rmse * 1.1:  # Prefer SARIMAX if similar performance
-                selected_fit = sarimax_fit
+            model_info = {
+                "model_type": "SARIMAX",
+                "order": sarimax_order,
+                "seasonal_order": sarimax_seasonal,
+                "aic": round(sarimax_fit.aic, 2),
+                "validation_rmse": round(sarimax_rmse, 4)
+            }
+        else:
+            model_info = {
+                "model_type": "SARIMAX",
+                "order": sarimax_order,
+                "seasonal_order": sarimax_seasonal,
+                "aic": round(sarimax_fit.aic, 2)
+            }
+    else:
+        # SARIMAX failed - fallback to ARIMA
+        print(f"⚠️  SARIMAX failed for {barangay_name}, falling back to ARIMA...")
+        arima_fit, arima_order, _ = fit_best_arima(train)
+        
+        if arima_fit is not None:
+            selected_fit = arima_fit
+            if len(test) > 0:
+                arima_forecast_test = arima_fit.forecast(steps=len(test))
+                arima_rmse = np.sqrt(mean_squared_error(test, arima_forecast_test))
                 model_info = {
-                    "model_type": "SARIMAX",
-                    "order": sarimax_order,
-                    "seasonal_order": sarimax_seasonal,
-                    "aic": round(sarimax_fit.aic, 2),
-                    "validation_rmse": round(sarimax_rmse, 4)
-                }
-            else:
-                selected_fit = arima_fit
-                model_info = {
-                    "model_type": "ARIMA",
+                    "model_type": "ARIMA (fallback)",
                     "order": arima_order,
                     "aic": round(arima_fit.aic, 2),
                     "validation_rmse": round(arima_rmse, 4)
                 }
-        else:
-            # No test set, select based on AIC
-            if sarimax_fit.aic <= arima_fit.aic:
-                selected_fit = sarimax_fit
-                model_info = {
-                    "model_type": "SARIMAX",
-                    "order": sarimax_order,
-                    "seasonal_order": sarimax_seasonal,
-                    "aic": round(sarimax_fit.aic, 2)
-                }
             else:
-                selected_fit = arima_fit
                 model_info = {
-                    "model_type": "ARIMA",
+                    "model_type": "ARIMA (fallback)",
                     "order": arima_order,
                     "aic": round(arima_fit.aic, 2)
                 }
-    
-    elif sarimax_fit is not None:
-        selected_fit = sarimax_fit
-        model_info = {
-            "model_type": "SARIMAX",
-            "order": sarimax_order,
-            "seasonal_order": sarimax_seasonal,
-            "aic": round(sarimax_fit.aic, 2)
-        }
-    elif arima_fit is not None:
-        selected_fit = arima_fit
-        model_info = {
-            "model_type": "ARIMA",
-            "order": arima_order,
-            "aic": round(arima_fit.aic, 2)
-        }
-    else:
-        return None, {"error": "All models failed to fit"}
+        else:
+            # Both models failed
+            return None, {"error": "All models failed to fit"}
     
     # Retrain on full data
     try:
-        if model_info["model_type"] == "SARIMAX":
+        if "SARIMAX" in model_info["model_type"]:
             final_model = SARIMAX(
                 y_transformed,
                 order=model_info["order"],
