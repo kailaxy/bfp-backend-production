@@ -47,6 +47,7 @@ const reverseGeocodeRoute     = require('./routes/reverseGeocode');
 const authRoute               = require('./routes/auth');
 const usersRoute              = require('./routes/users');
 const forecastsRoute          = require('./routes/forecasts');
+const migrationsRoute         = require('./routes/migrations');
 
 // Import scheduler service
 // Optional scheduler service (may fail if Python dependencies are missing)
@@ -70,6 +71,7 @@ app.use('/api/notifications',      notificationsRoute);
 app.use('/api/auth',               authRoute);
 app.use('/api/users',              usersRoute);
 app.use('/api/forecasts',          forecastsRoute);
+app.use('/api/migrations',         migrationsRoute);
 
 // Default root route
 app.get('/', (req, res) => {
