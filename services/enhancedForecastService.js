@@ -65,9 +65,13 @@ class EnhancedForecastService {
   async prepareInputFile(historicalData, forecastMonths = 12, targetDate = null) {
     await this.ensureTempDir();
 
+    const now = new Date();
+    // Forecast starts from current month
+    const forecastStartObj = new Date(now.getFullYear(), now.getMonth(), 1);
+    const forecastStart = forecastStartObj.toISOString().split('T')[0];
+    
     // Default target date to forecastMonths from now
     if (!targetDate) {
-      const now = new Date();
       const targetDateObj = new Date(now.getFullYear(), now.getMonth() + forecastMonths, 1);
       targetDate = targetDateObj.toISOString().split('T')[0];
     }
@@ -79,6 +83,7 @@ class EnhancedForecastService {
         incident_count: parseInt(row.incident_count)
       })),
       forecast_months: forecastMonths,
+      forecast_start: forecastStart,
       target_date: targetDate
     };
 

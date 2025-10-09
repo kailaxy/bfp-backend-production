@@ -181,6 +181,7 @@ def fit_best_sarimax(train_data):
     best_aic = np.inf
     best_order = None
     best_seasonal = None
+    errors = []
     
     for order, seasonal in SARIMAX_CANDIDATES:
         try:
@@ -198,15 +199,22 @@ def fit_best_sarimax(train_data):
                 best_fit = fit
                 best_order = order
                 best_seasonal = seasonal
-        except Exception:
+        except Exception as e:
+            errors.append(f"{order}{seasonal}: {str(e)[:50]}")
             continue
+    
+    if best_fit is None and errors:
+        print(f"    SARIMAX failed: {errors[0]}")
     
     return best_fit, best_order, best_seasonal
 
 
-def generate_barangay_forecast(y_original, y_transformed, barangay_name, forecast_steps, target_end_date):
+def generate_barangay_forecast(y_original, y_transformed, barangay_name, forecast_steps, target_end_date, forecast_start_date):
     """
     Generate forecast for a barangay using best model
+    
+    Parameters:
+    - forecast_start_date: The date to start forecasting from (usually current month)
     
     Returns:
     - forecasts: list of dicts with monthly forecasts
@@ -302,23 +310,31 @@ def generate_barangay_forecast(y_original, y_transformed, barangay_name, forecas
         forecast_lower = np.square(forecast_ci_transformed.iloc[:, 0])
         forecast_upper = np.square(forecast_ci_transformed.iloc[:, 1])
         
-        # Create forecast dates
+        # Calculate how many steps ahead forecast_start_date is from last historical date
         last_date = y_original.index[-1]
+        months_ahead = (forecast_start_date.year - last_date.year) * 12 + (forecast_start_date.month - last_date.month)
+        
+        # Create forecast dates starting from forecast_start_date
         forecast_dates = pd.date_range(
-            start=last_date + pd.DateOffset(months=1),
+            start=forecast_start_date,
             periods=forecast_steps,
             freq='MS'
         )
         
-        # Build forecast list
+        # Build forecast list (skip initial months if needed)
         forecasts = []
         for i, date in enumerate(forecast_dates):
             if date > target_end_date:
                 break
             
-            predicted = float(forecast_mean.iloc[i])
-            lower = float(forecast_lower.iloc[i])
-            upper = float(forecast_upper.iloc[i])
+            # Calculate the actual forecast index (accounting for months_ahead)
+            forecast_idx = months_ahead - 1 + i
+            if forecast_idx < 0 or forecast_idx >= len(forecast_mean):
+                continue
+            
+            predicted = float(forecast_mean.iloc[forecast_idx])
+            lower = float(forecast_lower.iloc[forecast_idx])
+            upper = float(forecast_upper.iloc[forecast_idx])
             
             risk_level, risk_flag = categorize_risk(predicted, upper)
             
@@ -380,8 +396,11 @@ def main():
     historical_data = input_data.get('historical_data', [])
     forecast_months = input_data.get('forecast_months', 12)
     target_date_str = input_data.get('target_date', '2025-12-01')
+    forecast_start_str = input_data.get('forecast_start', None)
     
     target_end_date = pd.Timestamp(target_date_str)
+    # Forecast start date - if not provided, use current month
+    forecast_start_date = pd.Timestamp(forecast_start_str) if forecast_start_str else pd.Timestamp.now().replace(day=1)
     
     # Convert to DataFrame
     df = pd.DataFrame(historical_data)
@@ -409,7 +428,8 @@ def main():
             y_transformed, 
             barangay, 
             forecast_months,
-            target_end_date
+            target_end_date,
+            forecast_start_date
         )
         
         if forecasts is None:
