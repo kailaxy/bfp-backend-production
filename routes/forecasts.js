@@ -12,47 +12,21 @@ const requireAdmin = require('../middleware/admin');
  */
 router.get('/arima/all', authenticateJWT, requireAdmin, async (req, res) => {
   try {
-    // Try arima_forecasts table first (has model_used column)
-    const arimaQuery = `
+    const query = `
       SELECT 
-        barangay,
-        forecast_month,
+        barangay_name as barangay,
+        year || '-' || LPAD(month::text, 2, '0') || '-01' as forecast_month,
         predicted_cases,
         lower_bound,
         upper_bound,
         risk_level,
-        model_used,
+        COALESCE(model_used, 'ARIMA (legacy)') as model_used,
         created_at
-      FROM arima_forecasts
-      ORDER BY barangay, forecast_month
+      FROM forecasts
+      ORDER BY barangay_name, year, month
     `;
 
-    let result;
-    try {
-      result = await db.query(arimaQuery);
-      console.log(`✅ Retrieved ${result.rows.length} forecasts from arima_forecasts table`);
-    } catch (err) {
-      // Fallback to old forecasts table if arima_forecasts doesn't exist
-      if (err.code === '42P01') {
-        console.log('⚠️  arima_forecasts table not found, falling back to forecasts table');
-        const fallbackQuery = `
-          SELECT 
-            barangay_name as barangay,
-            year || '-' || LPAD(month::text, 2, '0') || '-01' as forecast_month,
-            predicted_cases,
-            lower_bound,
-            upper_bound,
-            risk_level,
-            'ARIMA (legacy)' as model_used,
-            created_at
-          FROM forecasts
-          ORDER BY barangay_name, year, month
-        `;
-        result = await db.query(fallbackQuery);
-      } else {
-        throw err;
-      }
-    }
+    const result = await db.query(query);
 
     // Group by barangay
     const grouped = {};

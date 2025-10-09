@@ -169,10 +169,16 @@ class EnhancedForecastService {
       // Store each forecast
       let insertCount = 0;
       for (const forecast of forecasts) {
+        // Parse forecast_month to extract year and month
+        const forecastDate = new Date(forecast.forecast_month);
+        const year = forecastDate.getFullYear();
+        const month = forecastDate.getMonth() + 1; // JavaScript months are 0-indexed
+        
         const insertQuery = `
-          INSERT INTO arima_forecasts (
-            barangay, 
-            forecast_month, 
+          INSERT INTO forecasts (
+            barangay_name, 
+            year,
+            month,
             predicted_cases, 
             lower_bound, 
             upper_bound, 
@@ -180,9 +186,9 @@ class EnhancedForecastService {
             risk_flag,
             model_used,
             confidence_interval,
-            generated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-          ON CONFLICT (barangay, forecast_month) 
+            created_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+          ON CONFLICT (barangay_name, year, month) 
           DO UPDATE SET
             predicted_cases = EXCLUDED.predicted_cases,
             lower_bound = EXCLUDED.lower_bound,
@@ -191,17 +197,18 @@ class EnhancedForecastService {
             risk_flag = EXCLUDED.risk_flag,
             model_used = EXCLUDED.model_used,
             confidence_interval = EXCLUDED.confidence_interval,
-            generated_at = EXCLUDED.generated_at
+            created_at = EXCLUDED.created_at
         `;
 
         await client.query(insertQuery, [
           forecast.barangay,
-          forecast.forecast_month,
+          year,
+          month,
           forecast.predicted_cases,
           forecast.lower_bound,
           forecast.upper_bound,
           forecast.risk_level,
-          forecast.risk_flag || 'normal',
+          forecast.risk_flag === true,
           forecast.model_used,
           forecast.confidence_interval,
           metadata.generated_at
