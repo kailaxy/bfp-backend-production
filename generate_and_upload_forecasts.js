@@ -48,7 +48,16 @@ class LocalForecastGenerator {
   }
 
   async fetchHistoricalData() {
-    const client = new Client({ connectionString: PRODUCTION_DB_URL, ssl: { rejectUnauthorized: false } });
+    const client = new Client({ 
+      host: 'dpg-d35r1s2li9vc738l9f70-a.singapore-postgres.render.com',
+      port: 5432,
+      database: 'bfpmapping_nua2',
+      user: 'bfpmapping_nua2_user',
+      password: 'mDB9Q1s6mnnTyX6gzqSMD5CTphUsvR6L',
+      ssl: {
+        rejectUnauthorized: false
+      }
+    });
     
     try {
       await client.connect();
@@ -88,7 +97,7 @@ class LocalForecastGenerator {
     const inputData = {
       historical_data: historicalData.map(row => ({
         barangay: row.barangay,
-        date: row.date + '-01',
+        date: row.date,
         incident_count: parseInt(row.incident_count)
       })),
       forecast_months: 12,
@@ -110,7 +119,9 @@ class LocalForecastGenerator {
       console.log('🐍 Executing Python forecasting script...');
       console.log('   This may take 2-5 minutes...');
 
-      const python = spawn('python', [this.pythonScript, inputFile, outputFile]);
+      const python = spawn('py', [this.pythonScript, inputFile, outputFile], {
+        env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
+      });
 
       let stdout = '';
       let stderr = '';
@@ -139,7 +150,16 @@ class LocalForecastGenerator {
   }
 
   async uploadForecasts(forecasts, metadata) {
-    const client = new Client({ connectionString: PRODUCTION_DB_URL, ssl: { rejectUnauthorized: false } });
+    const client = new Client({ 
+      host: 'dpg-d35r1s2li9vc738l9f70-a.singapore-postgres.render.com',
+      port: 5432,
+      database: 'bfpmapping_nua2',
+      user: 'bfpmapping_nua2_user',
+      password: 'mDB9Q1s6mnnTyX6gzqSMD5CTphUsvR6L',
+      ssl: {
+        rejectUnauthorized: false
+      }
+    });
 
     try {
       await client.connect();
