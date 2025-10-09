@@ -65,10 +65,11 @@ class EnhancedForecastService {
   async prepareInputFile(historicalData, forecastMonths = 12, targetDate = null) {
     await this.ensureTempDir();
 
-    // Default target date to end of next year
+    // Default target date to forecastMonths from now
     if (!targetDate) {
       const now = new Date();
-      targetDate = `${now.getFullYear() + 1}-12-01`;
+      const targetDateObj = new Date(now.getFullYear(), now.getMonth() + forecastMonths, 1);
+      targetDate = targetDateObj.toISOString().split('T')[0];
     }
 
     const inputData = {

@@ -322,6 +322,12 @@ def generate_barangay_forecast(y_original, y_transformed, barangay_name, forecas
             
             risk_level, risk_flag = categorize_risk(predicted, upper)
             
+            # Format model_used string properly
+            if "SARIMAX" in model_info['model_type']:
+                model_str = f"SARIMAX{model_info['order']}{model_info['seasonal_order']}"
+            else:
+                model_str = f"{model_info['model_type']}{model_info['order']}"
+            
             forecasts.append({
                 "barangay": barangay_name,
                 "forecast_month": date.strftime('%Y-%m-%d'),
@@ -330,7 +336,7 @@ def generate_barangay_forecast(y_original, y_transformed, barangay_name, forecas
                 "upper_bound": round(upper, 6),
                 "risk_level": risk_level,
                 "risk_flag": risk_flag,
-                "model_used": f"{model_info['model_type']}{model_info['order']}",
+                "model_used": model_str,
                 "confidence_interval": 95
             })
         
