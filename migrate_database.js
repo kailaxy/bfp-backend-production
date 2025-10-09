@@ -105,43 +105,20 @@ async function getTableSchema(tableName) {
 }
 
 /**
- * Create table in Railway database if it doesn't exist
+ * Check if table exists in Railway
  */
-async function ensureTableExists(tableName) {
-  // Get CREATE TABLE statement from Render
-  const query = `
-    SELECT 
-      'CREATE TABLE IF NOT EXISTS ' || quote_ident(table_name) || ' (' ||
-      string_agg(
-        quote_ident(column_name) || ' ' || 
-        data_type || 
-        CASE WHEN character_maximum_length IS NOT NULL 
-          THEN '(' || character_maximum_length || ')' 
-          ELSE '' 
-        END ||
-        CASE WHEN is_nullable = 'NO' THEN ' NOT NULL' ELSE '' END ||
-        CASE WHEN column_default IS NOT NULL 
-          THEN ' DEFAULT ' || column_default 
-          ELSE '' 
-        END,
-        ', '
-      ) || 
-      ');' as create_statement
-    FROM information_schema.columns
-    WHERE table_schema = 'public' AND table_name = $1
-    GROUP BY table_name;
-  `;
-  
+async function tableExists(tableName) {
   try {
-    const result = await renderPool.query(query, [tableName]);
-    if (result.rows.length > 0) {
-      const createStatement = result.rows[0].create_statement;
-      await railwayPool.query(createStatement);
-      log(`  ✓ Table structure ready: ${tableName}`, colors.green);
-    }
+    const result = await railwayPool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = $1
+      );
+    `, [tableName]);
+    return result.rows[0].exists;
   } catch (error) {
-    log(`  ⚠ Could not auto-create table ${tableName}: ${error.message}`, colors.yellow);
-    log(`  → Attempting to copy data anyway (table may already exist)`, colors.yellow);
+    return false;
   }
 }
 
@@ -174,8 +151,13 @@ async function migrateTable(tableName) {
     
     log(`  → Source has ${sourceCount} rows`, colors.blue);
     
-    // Ensure table exists in Railway
-    await ensureTableExists(tableName);
+    // Check if table exists in Railway
+    const exists = await tableExists(tableName);
+    if (!exists) {
+      log(`  ⚠ Table ${tableName} doesn't exist in Railway yet`, colors.yellow);
+      log(`  → Run database migrations on Railway first, then retry`, colors.yellow);
+      return { table: tableName, rows: 0, status: 'skip', reason: 'table_not_exists' };
+    }
     
     // Get all data from Render
     log(`  → Fetching data from Render...`, colors.blue);
