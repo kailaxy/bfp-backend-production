@@ -108,7 +108,22 @@ class EnhancedForecastService {
       const pythonCmd = fsSync.existsSync('/opt/venv/bin/python3') ? '/opt/venv/bin/python3' : 'python';
       console.log(`   Using Python: ${pythonCmd}`);
       
-      const pythonProcess = spawn(pythonCmd, [this.pythonScript, inputFile, outputFile]);
+      // Set up environment to avoid numpy import issues
+      const env = { ...process.env };
+      
+      // If using venv, ensure PYTHONPATH doesn't include problematic directories
+      if (pythonCmd === '/opt/venv/bin/python3') {
+        // Clear PYTHONPATH to avoid conflicts
+        delete env.PYTHONPATH;
+        // Set PYTHONHOME to venv
+        env.VIRTUAL_ENV = '/opt/venv';
+        env.PATH = `/opt/venv/bin:${env.PATH}`;
+      }
+      
+      const pythonProcess = spawn(pythonCmd, [this.pythonScript, inputFile, outputFile], {
+        env,
+        cwd: path.join(__dirname, '..') // Run from backend root, not from services/
+      });
 
       let stdout = '';
       let stderr = '';
