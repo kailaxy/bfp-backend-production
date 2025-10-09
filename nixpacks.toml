@@ -5,7 +5,7 @@ nixPkgs = ["nodejs_20", "python311", "python311Packages.pip"]
 cmds = ["npm ci"]
 
 [phases.postInstall]
-cmds = ["pip install --upgrade pip", "pip install -r forecasting/requirements.txt"]
+cmds = ["pip install --user -r forecasting/requirements.txt"]
 
 [start]
 cmd = "node server.js"
