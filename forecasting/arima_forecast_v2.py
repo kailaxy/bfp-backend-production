@@ -300,8 +300,19 @@ def generate_barangay_forecast(y_original, y_transformed, barangay_name, forecas
             final_model = ARIMA(y_transformed, order=model_info["order"])
             final_fit = final_model.fit()
         
-        # Generate forecast
-        forecast_result = final_fit.get_forecast(steps=forecast_steps)
+        # Calculate how many steps ahead forecast_start_date is from last historical date
+        last_date = y_original.index[-1]
+        months_ahead = (forecast_start_date.year - last_date.year) * 12 + (forecast_start_date.month - last_date.month)
+        
+        # We need to generate enough forecasts to cover the gap + desired forecast period
+        # If historical data ends at 2024-10 and we want forecasts from 2025-10 to 2026-10:
+        # - Gap: 12 months (2024-11 to 2025-10)
+        # - Desired: 13 months (2025-10 to 2026-10)
+        # - Total steps needed: 12 + 13 = 25
+        total_steps_needed = months_ahead + forecast_steps
+        
+        # Regenerate forecast with correct number of steps
+        forecast_result = final_fit.get_forecast(steps=total_steps_needed)
         forecast_mean_transformed = forecast_result.predicted_mean
         forecast_ci_transformed = forecast_result.conf_int(alpha=0.05)
         
@@ -310,10 +321,6 @@ def generate_barangay_forecast(y_original, y_transformed, barangay_name, forecas
         forecast_lower = np.square(forecast_ci_transformed.iloc[:, 0])
         forecast_upper = np.square(forecast_ci_transformed.iloc[:, 1])
         
-        # Calculate how many steps ahead forecast_start_date is from last historical date
-        last_date = y_original.index[-1]
-        months_ahead = (forecast_start_date.year - last_date.year) * 12 + (forecast_start_date.month - last_date.month)
-        
         # Create forecast dates starting from forecast_start_date
         forecast_dates = pd.date_range(
             start=forecast_start_date,
@@ -321,15 +328,16 @@ def generate_barangay_forecast(y_original, y_transformed, barangay_name, forecas
             freq='MS'
         )
         
-        # Build forecast list (skip initial months if needed)
+        # Build forecast list - extract the forecasts we need
         forecasts = []
         for i, date in enumerate(forecast_dates):
             if date > target_end_date:
                 break
             
             # Calculate the actual forecast index (accounting for months_ahead)
-            forecast_idx = months_ahead - 1 + i
-            if forecast_idx < 0 or forecast_idx >= len(forecast_mean):
+            # months_ahead is 12, so first forecast we want is at index 12 (13th element, 0-indexed)
+            forecast_idx = months_ahead + i
+            if forecast_idx >= len(forecast_mean):
                 continue
             
             predicted = float(forecast_mean.iloc[forecast_idx])
