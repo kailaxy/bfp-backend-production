@@ -8,6 +8,8 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const HOST = process.env.HOST || '0.0.0.0';
 
+// Force rebuild: 2025-10-09 - Python environment fixes
+
 // CORS configuration for production
 const corsOptions = {
   origin: [
