@@ -103,7 +103,12 @@ class EnhancedForecastService {
       console.log(`   Input: ${inputFile}`);
       console.log(`   Output: ${outputFile}`);
 
-      const pythonProcess = spawn('python', [this.pythonScript, inputFile, outputFile]);
+      // Use venv Python if available (Railway), otherwise system Python
+      const fsSync = require('fs');
+      const pythonCmd = fsSync.existsSync('/opt/venv/bin/python3') ? '/opt/venv/bin/python3' : 'python';
+      console.log(`   Using Python: ${pythonCmd}`);
+      
+      const pythonProcess = spawn(pythonCmd, [this.pythonScript, inputFile, outputFile]);
 
       let stdout = '';
       let stderr = '';
