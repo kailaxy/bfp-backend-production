@@ -379,7 +379,7 @@ def main():
     
     # Convert to DataFrame
     df = pd.DataFrame(historical_data)
-    df['date'] = pd.to_datetime(df['date'], format='%Y-%m')
+    df['date'] = pd.to_datetime(df['date'], format='ISO8601')
     
     # Sort barangays alphabetically
     barangay_list = sorted(df['barangay'].unique())
