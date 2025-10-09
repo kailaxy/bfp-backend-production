@@ -12,6 +12,11 @@ const requireAdmin = require('../middleware/admin');
  */
 router.get('/arima/all', authenticateJWT, requireAdmin, async (req, res) => {
   try {
+    // Get current year and month for filtering
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    
     const query = `
       SELECT 
         barangay_name as barangay,
@@ -23,10 +28,19 @@ router.get('/arima/all', authenticateJWT, requireAdmin, async (req, res) => {
         COALESCE(model_used, 'ARIMA (legacy)') as model_used,
         created_at
       FROM forecasts
+      WHERE (year > $1) OR (year = $1 AND month >= $2)
       ORDER BY barangay_name, year, month
     `;
 
-    const result = await db.query(query);
+    const result = await db.query(query, [currentYear, currentMonth]);
+
+    // Get the most recent created_at timestamp
+    const lastUpdatedQuery = `
+      SELECT MAX(created_at) as last_updated
+      FROM forecasts
+    `;
+    const lastUpdatedResult = await db.query(lastUpdatedQuery);
+    const lastUpdated = lastUpdatedResult.rows[0]?.last_updated;
 
     // Group by barangay
     const grouped = {};
@@ -52,7 +66,7 @@ router.get('/arima/all', authenticateJWT, requireAdmin, async (req, res) => {
     res.json({
       barangays,
       total: barangays.length,
-      last_updated: result.rows.length > 0 ? result.rows[0].created_at : null
+      last_updated: lastUpdated
     });
 
   } catch (error) {
