@@ -14,16 +14,16 @@ router.get('/arima/all', authenticateJWT, requireAdmin, async (req, res) => {
   try {
     const query = `
       SELECT 
-        barangay,
-        forecast_month,
+        barangay_name as barangay,
+        year || '-' || LPAD(month::text, 2, '0') || '-01' as forecast_month,
         predicted_cases,
         lower_bound,
         upper_bound,
         risk_level,
-        model_used,
+        'ARIMA' as model_used,
         created_at
-      FROM arima_forecasts
-      ORDER BY barangay, forecast_month
+      FROM forecasts
+      ORDER BY barangay_name, year, month
     `;
 
     const result = await db.query(query);
@@ -56,8 +56,28 @@ router.get('/arima/all', authenticateJWT, requireAdmin, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching ARIMA forecasts:', error);
-    res.status(500).json({ error: 'Failed to fetch ARIMA forecasts' });
+    console.error('❌ Error fetching ARIMA forecasts:', error);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      detail: error.detail,
+      stack: error.stack
+    });
+    
+    // Check if it's a table not found error
+    if (error.code === '42P01') {
+      return res.status(200).json({
+        barangays: [],
+        total: 0,
+        last_updated: null,
+        message: 'ARIMA forecasts table not found. Please generate forecasts first.'
+      });
+    }
+    
+    res.status(500).json({ 
+      error: 'Failed to fetch ARIMA forecasts',
+      details: error.message 
+    });
   }
 });
 
