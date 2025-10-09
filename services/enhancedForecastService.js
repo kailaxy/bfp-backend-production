@@ -16,7 +16,7 @@ const path = require('path');
 
 class EnhancedForecastService {
   constructor() {
-    this.pythonScript = path.join(__dirname, 'arima_forecast_v2.py');
+    this.pythonScript = path.join(__dirname, '../forecasting/arima_forecast_v2.py');
     this.tempDir = path.join(__dirname, '../temp');
   }
 
