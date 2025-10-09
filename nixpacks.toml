@@ -1,6 +1,7 @@
 # Railway build configuration - includes zlib for numpy C-extensions
 [phases.setup]
 nixPkgs = ["nodejs_20", "python311", "python311Packages.pip", "python311Packages.virtualenv", "zlib"]
+nixLibs = ["zlib"]
 
 [phases.install]
 cmds = ["npm ci"]
@@ -12,8 +13,8 @@ cmds = [
   "find /app -type d \\( -name 'numpy' -o -name 'pandas' -o -name 'scipy' -o -name 'statsmodels' -o -name '__pycache__' \\) -exec rm -rf {} + || true",
   "find /app -type f \\( -name '*.pyc' -o -name '*.pyo' \\) -delete || true",
   
-  # Create fresh venv
-  "python3 -m venv --clear /opt/venv",
+  # Create fresh venv with system site packages to access Nix libraries
+  "python3 -m venv --clear --system-site-packages /opt/venv",
   
   # Upgrade pip and install packages
   "/opt/venv/bin/pip install --upgrade pip setuptools wheel",
@@ -21,9 +22,9 @@ cmds = [
   "/opt/venv/bin/pip install --no-cache-dir pandas==2.2.0 scipy==1.12.0",
   "/opt/venv/bin/pip install --no-cache-dir statsmodels==0.14.1 scikit-learn",
   
-  # Verify installation
-  "/opt/venv/bin/python3 -c 'import numpy; print(f\"numpy {numpy.__version__} installed at {numpy.__file__}\")'",
-  "/opt/venv/bin/python3 -c 'import pandas; print(f\"pandas {pandas.__version__} installed\")'",
+  # Verify installation with LD_LIBRARY_PATH set
+  "LD_LIBRARY_PATH=/nix/store/*-zlib-*/lib:$LD_LIBRARY_PATH /opt/venv/bin/python3 -c 'import numpy; print(f\"numpy {numpy.__version__} installed at {numpy.__file__}\")'",
+  "LD_LIBRARY_PATH=/nix/store/*-zlib-*/lib:$LD_LIBRARY_PATH /opt/venv/bin/python3 -c 'import pandas; print(f\"pandas {pandas.__version__} installed\")'",
   
   # Final cleanup of any Python source in /app
   "cd /app && find . -maxdepth 2 -type d \\( -name 'numpy' -o -name 'pandas' \\) ! -path './forecasting/*' -exec rm -rf {} + || true"

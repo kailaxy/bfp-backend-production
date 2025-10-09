@@ -3,6 +3,10 @@
 
 echo "🔍 Checking Python environment..."
 
+# Set LD_LIBRARY_PATH to include Nix zlib
+export LD_LIBRARY_PATH=/nix/store/*-zlib-*/lib:$LD_LIBRARY_PATH
+echo "📚 LD_LIBRARY_PATH set for zlib"
+
 # Check if venv exists
 if [ -d "/opt/venv" ]; then
     echo "✅ Virtual environment found at /opt/venv"
