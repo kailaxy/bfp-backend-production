@@ -3,9 +3,9 @@
 
 echo "🔍 Checking Python environment..."
 
-# Set LD_LIBRARY_PATH to include Nix zlib
-export LD_LIBRARY_PATH=/nix/store/*-zlib-*/lib:$LD_LIBRARY_PATH
-echo "📚 LD_LIBRARY_PATH set for zlib"
+# Set LD_LIBRARY_PATH to include Nix zlib and C++ standard library
+export LD_LIBRARY_PATH=/nix/store/*-zlib-*/lib:/nix/store/*-gcc-*/lib:$LD_LIBRARY_PATH
+echo "📚 LD_LIBRARY_PATH set for system libraries (zlib, libstdc++)"
 
 # Check if venv exists
 if [ -d "/opt/venv" ]; then

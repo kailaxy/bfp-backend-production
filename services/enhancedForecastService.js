@@ -126,12 +126,12 @@ class EnhancedForecastService {
         env.VIRTUAL_ENV = '/opt/venv';
         env.PATH = `/opt/venv/bin:${env.PATH}`;
         
-        // Set LD_LIBRARY_PATH to include Nix zlib for numpy C-extensions
-        const zlibPath = '/nix/store/*-zlib-*/lib';
-        env.LD_LIBRARY_PATH = env.LD_LIBRARY_PATH ? `${zlibPath}:${env.LD_LIBRARY_PATH}` : zlibPath;
+        // Set LD_LIBRARY_PATH to include Nix system libraries for Python C-extensions
+        const libPaths = '/nix/store/*-zlib-*/lib:/nix/store/*-gcc-*/lib';
+        env.LD_LIBRARY_PATH = env.LD_LIBRARY_PATH ? `${libPaths}:${env.LD_LIBRARY_PATH}` : libPaths;
         
         console.log(`   Environment: VIRTUAL_ENV=/opt/venv, PATH=${env.PATH.split(':')[0]}`);
-        console.log(`   LD_LIBRARY_PATH includes zlib for numpy`);
+        console.log(`   LD_LIBRARY_PATH includes zlib and libstdc++ for Python packages`);
       }
       
       const pythonProcess = spawn(pythonCmd, [this.pythonScript, inputFile, outputFile], {
