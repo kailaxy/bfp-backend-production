@@ -193,7 +193,7 @@ class EnhancedForecastService {
    * Store forecasts in database
    */
   async storeForecastsInDatabase(forecasts, metadata) {
-    const client = await db.getClient();
+    const client = await db.pool.connect();
 
     try {
       await client.query('BEGIN');
