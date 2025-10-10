@@ -78,4 +78,23 @@ router.post('/', async (req, res) => {
   }
 });
 
+// DELETE /api/incidentsReports/:id - delete a historical fire record
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deleteSQL = 'DELETE FROM historical_fires WHERE id = $1';
+    const result = await db.query(deleteSQL, [id]);
+    
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Record not found' });
+    }
+    
+    console.log(`🗑️  Deleted historical fire record (ID: ${id})`);
+    res.json({ success: true, message: 'Record deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting historical fire:', err);
+    res.status(500).json({ error: 'Failed to delete record' });
+  }
+});
+
 module.exports = router;
