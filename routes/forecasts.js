@@ -682,4 +682,71 @@ router.post('/migrate-graph-table', authenticateJWT, requireAdmin, async (req, r
   }
 });
 
+/**
+ * GET /api/forecasts/debug/db-info
+ * Check database connection and forecasts_graphs table status
+ */
+router.get('/debug/db-info', authenticateJWT, requireAdmin, async (req, res) => {
+  try {
+    const client = await db.pool.connect();
+    
+    // Get database name
+    const dbNameResult = await client.query('SELECT current_database()');
+    const dbName = dbNameResult.rows[0].current_database;
+    
+    // Check if table exists
+    const tableCheck = await client.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'forecasts_graphs'
+      );
+    `);
+    const tableExists = tableCheck.rows[0].exists;
+    
+    // If table exists, get record count and structure
+    let recordCount = 0;
+    let columns = [];
+    let sampleData = [];
+    
+    if (tableExists) {
+      const countResult = await client.query('SELECT COUNT(*) FROM forecasts_graphs');
+      recordCount = parseInt(countResult.rows[0].count);
+      
+      const columnsResult = await client.query(`
+        SELECT column_name, data_type 
+        FROM information_schema.columns 
+        WHERE table_name = 'forecasts_graphs' 
+        ORDER BY ordinal_position
+      `);
+      columns = columnsResult.rows;
+      
+      if (recordCount > 0) {
+        const sampleResult = await client.query('SELECT * FROM forecasts_graphs LIMIT 3');
+        sampleData = sampleResult.rows;
+      }
+    }
+    
+    client.release();
+    
+    res.json({
+      success: true,
+      database: dbName,
+      table: {
+        exists: tableExists,
+        recordCount,
+        columns,
+        sampleData
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error checking database:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;
