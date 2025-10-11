@@ -187,6 +187,17 @@ class EnhancedForecastService {
       console.log(`   - Total forecasts: ${results.forecasts.length}`);
       console.log(`   - Successful barangays: ${results.metadata.successful_forecasts}`);
       console.log(`   - Total barangays: ${results.metadata.total_barangays}`);
+      
+      // DEBUG: Check if graph_data exists
+      if (results.graph_data) {
+        console.log(`   - Graph data records: ${results.graph_data.length}`);
+        if (results.graph_data.length > 0) {
+          console.log(`   - Graph data sample:`, results.graph_data[0]);
+        }
+      } else {
+        console.log(`   - ⚠️ WARNING: graph_data is missing from Python output!`);
+        console.log(`   - Available keys in results:`, Object.keys(results));
+      }
 
       return results;
     } catch (err) {
