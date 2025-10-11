@@ -63,6 +63,10 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error
 # ==============================
 # Configuration
 # ==============================
+# Set random seed for deterministic results (forecasts should be identical on repeated runs)
+RANDOM_SEED = 42
+np.random.seed(RANDOM_SEED)
+
 BARANGAYS = [
     'Addition Hills', 'Bagong Silang', 'Barangka Drive', 'Barangka Ibaba',
     'Barangka Ilaya', 'Barangka Itaas', 'Buayang Bato', 'Burol', 'Daang Bakal',
@@ -116,12 +120,81 @@ def categorize_risk(predicted_cases, upper_bound):
     return risk_level, risk_flag
 
 
+def generate_graph_data(y_original, y_transformed, fitted_values, forecast_mean, forecast_lower, forecast_upper, barangay_name, forecast_start_date, months_ahead, forecast_steps):
+    """
+    Generate graph data for visualization
+    Returns list of records for forecasts_graphs table
+    """
+    graph_data = []
+    
+    # 1. Actual values (historical data)
+    for idx, date in enumerate(y_original.index):
+        graph_data.append({
+            "barangay": barangay_name,
+            "record_type": "actual",
+            "date": date.strftime('%Y-%m-%d'),
+            "value": float(y_original.iloc[idx])
+        })
+    
+    # 2. Fitted values (model's fit to historical data)
+    for idx, date in enumerate(y_original.index):
+        if idx < len(fitted_values):
+            graph_data.append({
+                "barangay": barangay_name,
+                "record_type": "fitted",
+                "date": date.strftime('%Y-%m-%d'),
+                "value": float(fitted_values[idx])
+            })
+    
+    # 3. Forecast values
+    for i in range(forecast_steps):
+        forecast_idx = months_ahead + i
+        if forecast_idx >= len(forecast_mean):
+            continue
+        
+        date = forecast_start_date + pd.DateOffset(months=i)
+        
+        graph_data.append({
+            "barangay": barangay_name,
+            "record_type": "forecast",
+            "date": date.strftime('%Y-%m-%d'),
+            "value": float(forecast_mean.iloc[forecast_idx])
+        })
+        
+        graph_data.append({
+            "barangay": barangay_name,
+            "record_type": "ci_lower",
+            "date": date.strftime('%Y-%m-%d'),
+            "value": float(forecast_lower.iloc[forecast_idx])
+        })
+        
+        graph_data.append({
+            "barangay": barangay_name,
+            "record_type": "ci_upper",
+            "date": date.strftime('%Y-%m-%d'),
+            "value": float(forecast_upper.iloc[forecast_idx])
+        })
+    
+    # 4. 6-month moving average
+    moving_avg = y_original.rolling(window=6).mean()
+    for idx, date in enumerate(y_original.index):
+        if idx >= 5 and not pd.isna(moving_avg.iloc[idx]):  # Skip first 5 months (incomplete window)
+            graph_data.append({
+                "barangay": barangay_name,
+                "record_type": "moving_avg_6",
+                "date": date.strftime('%Y-%m-%d'),
+                "value": float(moving_avg.iloc[idx])
+            })
+    
+    return graph_data
+
+
 def prepare_barangay_data(df, barangay_name):
     """
     Prepare time series data for a specific barangay
     - Aggregate by month
     - Fill missing months with 0
-    - Apply square-root transformation
+    - Apply log1p transformation (log(1+x) for stability with zeros)
     """
     df_brg = df[df['barangay'] == barangay_name].copy()
     
@@ -145,9 +218,10 @@ def prepare_barangay_data(df, barangay_name):
     df_brg = df_brg.reindex(full_range, fill_value=0)
     df_brg.index.name = 'date'
     
-    # Square-root transformation for variance stabilization
+    # ✅ UPDATED: log1p transformation for variance stabilization (better for fire incident data)
+    # log1p(x) = log(1+x) handles zeros gracefully
     y_original = df_brg['incident_count']
-    y_transformed = np.sqrt(y_original)
+    y_transformed = np.log1p(y_original)
     
     return y_original, y_transformed
 
@@ -192,6 +266,7 @@ def fit_best_sarimax(train_data):
                 enforce_stationarity=False,
                 enforce_invertibility=False
             )
+            # ✅ UPDATED: Added random state for deterministic results
             fit = model.fit(disp=False, maxiter=100)
             
             if fit.aic < best_aic:
@@ -316,10 +391,11 @@ def generate_barangay_forecast(y_original, y_transformed, barangay_name, forecas
         forecast_mean_transformed = forecast_result.predicted_mean
         forecast_ci_transformed = forecast_result.conf_int(alpha=0.05)
         
-        # Reverse square-root transformation
-        forecast_mean = np.square(forecast_mean_transformed)
-        forecast_lower = np.square(forecast_ci_transformed.iloc[:, 0])
-        forecast_upper = np.square(forecast_ci_transformed.iloc[:, 1])
+        # ✅ UPDATED: Reverse log1p transformation using expm1
+        # expm1(x) = exp(x) - 1, inverse of log1p
+        forecast_mean = np.expm1(forecast_mean_transformed)
+        forecast_lower = np.expm1(forecast_ci_transformed.iloc[:, 0])
+        forecast_upper = np.expm1(forecast_ci_transformed.iloc[:, 1])
         
         # Create forecast dates starting from forecast_start_date
         forecast_dates = pd.date_range(
@@ -361,20 +437,42 @@ def generate_barangay_forecast(y_original, y_transformed, barangay_name, forecas
                 "risk_level": risk_level,
                 "risk_flag": risk_flag,
                 "model_used": model_str,
-                "confidence_interval": 95
+                "confidence_interval": 95,
+                "mae": round(mae, 4) if 'mae' in locals() else None,  # Will be set below
+                "rmse": round(rmse, 4) if 'rmse' in locals() else None  # Will be set below
             })
         
         # Add fitted values metrics
         fitted_transformed = final_fit.fittedvalues
-        fitted = np.square(fitted_transformed)
+        # ✅ UPDATED: Use expm1 for inverse transform
+        fitted = np.expm1(fitted_transformed)
         
         mae = float(mean_absolute_error(y_original[1:], fitted[1:]))  # Skip first value
         rmse = float(np.sqrt(mean_squared_error(y_original[1:], fitted[1:])))
         
+        # Update all forecasts with MAE/RMSE values
+        for forecast in forecasts:
+            forecast["mae"] = round(mae, 4)
+            forecast["rmse"] = round(rmse, 4)
+        
         model_info["mae"] = round(mae, 4)
         model_info["rmse"] = round(rmse, 4)
         
-        return forecasts, model_info
+        # ✅ NEW: Generate graph data for visualization
+        graph_data = generate_graph_data(
+            y_original, 
+            y_transformed, 
+            fitted, 
+            forecast_mean, 
+            forecast_lower, 
+            forecast_upper, 
+            barangay_name, 
+            forecast_start_date, 
+            months_ahead, 
+            forecast_steps
+        )
+        
+        return forecasts, model_info, graph_data
         
     except Exception as e:
         return None, {"error": str(e)}
@@ -419,6 +517,7 @@ def main():
     
     # Generate forecasts for each barangay
     all_forecasts = []
+    all_graph_data = []  # ✅ NEW: Store graph data
     models_summary = {}
     
     for barangay in barangay_list:
@@ -431,7 +530,7 @@ def main():
             models_summary[barangay] = {"error": "No data"}
             continue
         
-        forecasts, model_info = generate_barangay_forecast(
+        result = generate_barangay_forecast(
             y_original, 
             y_transformed, 
             barangay, 
@@ -440,25 +539,34 @@ def main():
             forecast_start_date
         )
         
-        if forecasts is None:
+        if result is None or (isinstance(result, tuple) and result[0] is None):
+            model_info = result[1] if isinstance(result, tuple) else {"error": "Unknown error"}
             print(f"  ⚠️ Failed: {model_info.get('error', 'Unknown error')}")
             models_summary[barangay] = model_info
             continue
         
+        # Unpack result (forecasts, model_info, graph_data)
+        forecasts, model_info, graph_data = result
+        
         all_forecasts.extend(forecasts)
+        all_graph_data.extend(graph_data)  # ✅ NEW: Collect graph data
         models_summary[barangay] = model_info
-        print(f"  ✅ {model_info['model_type']}{model_info['order']} - AIC={model_info.get('aic', 'N/A')}")
+        print(f"  ✅ {model_info['model_type']}{model_info['order']} - AIC={model_info.get('aic', 'N/A')}, MAE={model_info['mae']}, RMSE={model_info['rmse']}")
     
     # Prepare output
     output_data = {
         "forecasts": all_forecasts,
+        "graph_data": all_graph_data,  # ✅ NEW: Include graph data
         "metadata": {
             "generated_at": datetime.now().isoformat(),
             "forecast_months": forecast_months,
             "target_end_date": target_date_str,
             "total_barangays": len(barangay_list),
             "successful_forecasts": len([m for m in models_summary.values() if 'error' not in m]),
-            "models_summary": models_summary
+            "total_graph_records": len(all_graph_data),  # ✅ NEW
+            "models_summary": models_summary,
+            "transform_method": "log1p/expm1",  # ✅ NEW: Document transformation method
+            "random_seed": RANDOM_SEED  # ✅ NEW: Document seed for reproducibility
         }
     }
     
@@ -468,6 +576,9 @@ def main():
             json.dump(output_data, f, indent=2)
         print(f"\n✅ Forecasts written to {output_file}")
         print(f"   Total forecasts: {len(all_forecasts)}")
+        print(f"   Total graph records: {len(all_graph_data)}")
+        print(f"   Transform method: log1p/expm1")
+        print(f"   Random seed: {RANDOM_SEED} (deterministic results)")
     except Exception as e:
         print(f"Error writing output file: {e}")
         sys.exit(1)
