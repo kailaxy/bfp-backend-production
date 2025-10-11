@@ -2,24 +2,19 @@
 const express            = require('express');
 const router             = express.Router();
 const pool               = require('../config/db');
-const { reverseGeocode } = require('../services/geocode');
+// Note: Server-side geocoding removed - frontend handles address lookup using Google Maps API
 
 router.get('/', async (req, res) => {
-  const { lat, lng } = req.query;
+  const { lat, lng, address } = req.query;
   if (!lat || !lng) {
     return res.status(400).json({ error: 'lat & lng required' });
   }
 
-  // 1. Get a human-readable address
-  let address;
-  try {
-    address = await reverseGeocode(lat, lng);
-  } catch (err) {
-    console.error('Reverse geocode error:', err);
-    return res.status(500).json({ error: 'Reverse geocode failed' });
-  }
+  // Note: Address should be provided by frontend using Google Maps Geocoding API
+  // Server-side geocoding is disabled to avoid API key restrictions
+  // Frontend has proper API key configured for browser requests
 
-  // 2. Find the barangay polygon
+  // Find the barangay polygon using coordinates
   let barangay = 'Unknown';
   try {
     const { rows } = await pool.query(
@@ -37,7 +32,10 @@ router.get('/', async (req, res) => {
     console.error('Barangay lookup error:', err);
   }
 
-  return res.json({ address, barangay });
+  return res.json({ 
+    address: address || 'Address not provided', 
+    barangay 
+  });
 });
 
 module.exports = router;
