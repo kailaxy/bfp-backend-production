@@ -18,18 +18,18 @@ if (!connectionString && process.env.DB_HOST && process.env.DB_NAME && process.e
   // Do NOT force `sslmode=require` for local development. Only append it when
   // DB_SSL is explicitly true or the host looks like a managed provider.
   connectionString = `postgresql://${user}:${pass}@${host}:${port}/${name}`;
-  const hostLooksLikeManagedFromEnv = /render\.com/.test(host);
+  const hostLooksLikeManagedFromEnv = /render\.com|railway\.app|rlwy\.net/.test(host);
   if (process.env.DB_SSL === 'true' || hostLooksLikeManagedFromEnv) {
     connectionString += '?sslmode=require';
   }
 }
 
 if (connectionString) {
-  // Determine whether SSL is required. Render Postgres requires SSL; some
+  // Determine whether SSL is required. Render and Railway Postgres require SSL; some
   // connection strings include ?sslmode=require. Also allow an explicit
   // DB_SSL env var or detect common managed hosts.
   const connectionStringRequiresSSL = /sslmode=require|ssl=true/i.test(connectionString);
-  const hostLooksLikeManaged = (process.env.DB_HOST && /render\.com/.test(process.env.DB_HOST));
+  const hostLooksLikeManaged = (process.env.DB_HOST && /render\.com|railway\.app|rlwy\.net/.test(process.env.DB_HOST));
   const useSSL = connectionStringRequiresSSL || isProduction || process.env.DB_SSL === 'true' || hostLooksLikeManaged;
 
   pool = new Pool({
@@ -44,8 +44,8 @@ if (connectionString) {
     // coerce password to string to avoid non-string types causing SASL errors
     password: process.env.DB_PASSWORD != null ? String(process.env.DB_PASSWORD) : '',
     port: Number.isFinite(Number(process.env.DB_PORT)) ? parseInt(process.env.DB_PORT, 10) : 5432,
-    // If DB_HOST looks like a managed provider that requires SSL, enable it.
-    ssl: (process.env.DB_SSL === 'true' || (process.env.DB_HOST && /render\.com/.test(process.env.DB_HOST))) ? { rejectUnauthorized: false } : false,
+    // If DB_HOST looks like a managed provider (Render, Railway) that requires SSL, enable it.
+    ssl: (process.env.DB_SSL === 'true' || (process.env.DB_HOST && /render\.com|railway\.app|rlwy\.net/.test(process.env.DB_HOST))) ? { rejectUnauthorized: false } : false,
   });
 }
 
