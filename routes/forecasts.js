@@ -543,6 +543,8 @@ router.get('/graphs/:barangay', authenticateJWT, async (req, res) => {
  * Create forecasts_graphs table for graph visualization (Admin only, one-time setup)
  */
 router.post('/migrate-graph-table', authenticateJWT, requireAdmin, async (req, res) => {
+  const client = await db.pool.connect(); // Get a dedicated client for explicit transaction control
+  
   try {
     console.log('📊 Running forecasts_graphs table migration...');
     
@@ -553,43 +555,88 @@ router.post('/migrate-graph-table', authenticateJWT, requireAdmin, async (req, r
     const sqlPath = path.join(__dirname, '../migrations/create_forecasts_graphs_table.sql');
     const sql = fs.readFileSync(sqlPath, 'utf8');
     
-    // Execute migration
-    await db.query(sql);
+    console.log('Starting explicit transaction...');
+    await client.query('BEGIN');
     
-    // Verify table creation
-    const verifyResult = await db.query(`
+    // Execute migration within transaction
+    console.log('Executing CREATE TABLE statement...');
+    await client.query(sql);
+    
+    // Verify table creation BEFORE committing
+    console.log('Verifying table creation...');
+    const verifyResult = await client.query(`
       SELECT COUNT(*) as exists 
       FROM information_schema.tables 
-      WHERE table_name = 'forecasts_graphs'
+      WHERE table_schema = 'public' 
+      AND table_name = 'forecasts_graphs'
     `);
     
-    const tableExists = verifyResult.rows[0].exists > 0;
+    const tableExists = parseInt(verifyResult.rows[0].exists) > 0;
+    console.log(`Table exists check: ${tableExists}`);
     
-    if (tableExists) {
-      // Get table structure
-      const structureResult = await db.query(`
-        SELECT column_name, data_type 
-        FROM information_schema.columns 
-        WHERE table_name = 'forecasts_graphs'
-        ORDER BY ordinal_position
-      `);
-      
-      console.log('✅ Migration completed successfully');
-      res.json({
-        success: true,
-        message: 'forecasts_graphs table created successfully',
-        table_structure: structureResult.rows
-      });
-    } else {
-      throw new Error('Table creation verification failed');
+    if (!tableExists) {
+      await client.query('ROLLBACK');
+      throw new Error('Table creation verification failed - table not found in information_schema');
     }
     
+    // Get table structure
+    const structureResult = await client.query(`
+      SELECT column_name, data_type 
+      FROM information_schema.columns 
+      WHERE table_schema = 'public' 
+      AND table_name = 'forecasts_graphs'
+      ORDER BY ordinal_position
+    `);
+    
+    // Get index information
+    const indexResult = await client.query(`
+      SELECT indexname, indexdef 
+      FROM pg_indexes 
+      WHERE schemaname = 'public' 
+      AND tablename = 'forecasts_graphs'
+    `);
+    
+    // COMMIT the transaction - THIS IS CRITICAL
+    console.log('Committing transaction...');
+    await client.query('COMMIT');
+    console.log('✅ Transaction committed successfully');
+    
+    // Final verification AFTER commit using a new query
+    const finalVerify = await db.query(`
+      SELECT COUNT(*) as count 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      AND table_name = 'forecasts_graphs'
+    `);
+    
+    console.log('✅ Migration completed and verified');
+    res.json({
+      success: true,
+      message: 'forecasts_graphs table created successfully',
+      transaction_committed: true,
+      final_verification: parseInt(finalVerify.rows[0].count) > 0,
+      table_structure: structureResult.rows,
+      indexes: indexResult.rows
+    });
+    
   } catch (error) {
+    // Rollback on any error
+    try {
+      await client.query('ROLLBACK');
+      console.log('Transaction rolled back due to error');
+    } catch (rollbackError) {
+      console.error('Rollback error:', rollbackError);
+    }
+    
     console.error('❌ Migration failed:', error);
     res.status(500).json({ 
       success: false,
-      error: 'Migration failed: ' + error.message 
+      error: 'Migration failed: ' + error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
+  } finally {
+    // Release the client back to the pool
+    client.release();
   }
 });
 
