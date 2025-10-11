@@ -749,4 +749,77 @@ router.get('/debug/db-info', authenticateJWT, requireAdmin, async (req, res) => 
   }
 });
 
+/**
+ * POST /api/forecasts/debug/test-insert
+ * Test inserting a single record into forecasts_graphs
+ */
+router.post('/debug/test-insert', authenticateJWT, requireAdmin, async (req, res) => {
+  try {
+    const client = await db.pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+      
+      // Check table exists
+      const tableCheck = await client.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' AND table_name = 'forecasts_graphs'
+        );
+      `);
+      
+      if (!tableCheck.rows[0].exists) {
+        await client.query('ROLLBACK');
+        return res.json({
+          success: false,
+          error: 'Table forecasts_graphs does not exist'
+        });
+      }
+      
+      // Try to insert a test record
+      const testRecord = {
+        barangay: 'TEST_BARANGAY',
+        record_type: 'actual',
+        date: '2024-01-01',
+        value: 1.23
+      };
+      
+      const insertResult = await client.query(`
+        INSERT INTO forecasts_graphs (barangay, record_type, date, value)
+        VALUES ($1, $2, $3, $4)
+        RETURNING id
+      `, [testRecord.barangay, testRecord.record_type, testRecord.date, testRecord.value]);
+      
+      await client.query('COMMIT');
+      
+      // Verify it was inserted
+      const verifyResult = await client.query(`
+        SELECT * FROM forecasts_graphs WHERE id = $1
+      `, [insertResult.rows[0].id]);
+      
+      res.json({
+        success: true,
+        message: 'Test record inserted successfully',
+        insertedId: insertResult.rows[0].id,
+        insertedRecord: verifyResult.rows[0]
+      });
+      
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+    
+  } catch (error) {
+    console.error('Error testing insert:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      code: error.code,
+      detail: error.detail
+    });
+  }
+});
+
 module.exports = router;
