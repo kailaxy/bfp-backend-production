@@ -449,4 +449,59 @@ router.get('/models/summary', authenticateJWT, requireAdmin, async (req, res) =>
   }
 });
 
+/**
+ * POST /api/forecasts/migrate-graph-table
+ * Create forecasts_graphs table for graph visualization (Admin only, one-time setup)
+ */
+router.post('/migrate-graph-table', authenticateJWT, requireAdmin, async (req, res) => {
+  try {
+    console.log('📊 Running forecasts_graphs table migration...');
+    
+    const fs = require('fs');
+    const path = require('path');
+    
+    // Read SQL migration file
+    const sqlPath = path.join(__dirname, '../migrations/create_forecasts_graphs_table.sql');
+    const sql = fs.readFileSync(sqlPath, 'utf8');
+    
+    // Execute migration
+    await db.query(sql);
+    
+    // Verify table creation
+    const verifyResult = await db.query(`
+      SELECT COUNT(*) as exists 
+      FROM information_schema.tables 
+      WHERE table_name = 'forecasts_graphs'
+    `);
+    
+    const tableExists = verifyResult.rows[0].exists > 0;
+    
+    if (tableExists) {
+      // Get table structure
+      const structureResult = await db.query(`
+        SELECT column_name, data_type 
+        FROM information_schema.columns 
+        WHERE table_name = 'forecasts_graphs'
+        ORDER BY ordinal_position
+      `);
+      
+      console.log('✅ Migration completed successfully');
+      res.json({
+        success: true,
+        message: 'forecasts_graphs table created successfully',
+        table_structure: structureResult.rows
+      });
+    } else {
+      throw new Error('Table creation verification failed');
+    }
+    
+  } catch (error) {
+    console.error('❌ Migration failed:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Migration failed: ' + error.message 
+    });
+  }
+});
+
 module.exports = router;

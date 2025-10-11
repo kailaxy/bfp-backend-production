@@ -271,6 +271,91 @@ class EnhancedForecastService {
   }
 
   /**
+   * Store graph data in database for visualization
+   * This includes actual, fitted, forecast, CI bounds, and moving averages
+   */
+  async storeGraphDataInDatabase(graphData) {
+    if (!graphData || graphData.length === 0) {
+      console.log('⚠️ No graph data to store');
+      return 0;
+    }
+
+    const client = await db.pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      console.log(`📊 Storing ${graphData.length} graph data records...`);
+
+      // Delete all existing graph data (fresh start on each generation)
+      await client.query('DELETE FROM forecasts_graphs');
+      console.log('   Cleared existing graph data');
+
+      // Batch insert for performance
+      const batchSize = 500;
+      let insertCount = 0;
+
+      for (let i = 0; i < graphData.length; i += batchSize) {
+        const batch = graphData.slice(i, i + batchSize);
+        
+        // Build VALUES clause for batch insert
+        const values = [];
+        const params = [];
+        let paramIndex = 1;
+
+        for (const record of batch) {
+          values.push(`($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3})`);
+          params.push(
+            record.barangay,
+            record.record_type,
+            record.date,
+            record.value
+          );
+          paramIndex += 4;
+        }
+
+        const insertQuery = `
+          INSERT INTO forecasts_graphs (barangay, record_type, date, value)
+          VALUES ${values.join(', ')}
+          ON CONFLICT (barangay, record_type, date) 
+          DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP
+        `;
+
+        await client.query(insertQuery, params);
+        insertCount += batch.length;
+
+        if (i + batchSize < graphData.length) {
+          console.log(`   Progress: ${insertCount}/${graphData.length} records inserted`);
+        }
+      }
+
+      await client.query('COMMIT');
+      console.log(`✅ Stored ${insertCount} graph data records successfully`);
+
+      // Summary by record type
+      const summaryResult = await client.query(`
+        SELECT record_type, COUNT(*) as count 
+        FROM forecasts_graphs 
+        GROUP BY record_type 
+        ORDER BY record_type
+      `);
+      
+      console.log('   Graph data summary by type:');
+      summaryResult.rows.forEach(row => {
+        console.log(`     - ${row.record_type}: ${row.count} records`);
+      });
+
+      return insertCount;
+    } catch (err) {
+      await client.query('ROLLBACK');
+      console.error('❌ Error storing graph data:', err);
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
    * Clean up temporary files
    */
   async cleanup(inputFile, outputFile) {
@@ -319,15 +404,19 @@ class EnhancedForecastService {
       await this.executePythonScript(inputFile, outputFile);
 
       // Step 4: Parse results
-      console.log('\nStep 4/5: Parsing forecast results...');
+      console.log('\nStep 4/6: Parsing forecast results...');
       const results = await this.parseForecastResults(outputFile);
 
-      // Step 5: Store in database
-      console.log('\nStep 5/5: Storing forecasts in database...');
+      // Step 5: Store forecasts in database
+      console.log('\nStep 5/6: Storing forecasts in database...');
       const insertCount = await this.storeForecastsInDatabase(
         results.forecasts,
         results.metadata
       );
+
+      // Step 6: Store graph data in database (NEW)
+      console.log('\nStep 6/6: Storing graph data for visualization...');
+      const graphInsertCount = await this.storeGraphDataInDatabase(results.graph_data || []);
 
       // Cleanup
       if (!keepTempFiles) {
@@ -342,8 +431,11 @@ class EnhancedForecastService {
       console.log(`   Duration: ${duration}s`);
       console.log(`   Forecasts generated: ${results.forecasts.length}`);
       console.log(`   Forecasts stored: ${insertCount}`);
+      console.log(`   Graph records stored: ${graphInsertCount}`);
       console.log(`   Barangays processed: ${results.metadata.total_barangays}`);
       console.log(`   Successful: ${results.metadata.successful_forecasts}`);
+      console.log(`   Transform method: ${results.metadata.transform_method || 'N/A'}`);
+      console.log(`   Random seed: ${results.metadata.random_seed || 'N/A'}`);
       console.log(`${'='.repeat(60)}\n`);
 
       return {
@@ -351,6 +443,7 @@ class EnhancedForecastService {
         duration: parseFloat(duration),
         forecasts_generated: results.forecasts.length,
         forecasts_stored: insertCount,
+        graph_records_stored: graphInsertCount,
         barangays_processed: results.metadata.total_barangays,
         successful_barangays: results.metadata.successful_forecasts,
         models_summary: results.metadata.models_summary,
