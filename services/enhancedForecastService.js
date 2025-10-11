@@ -180,8 +180,13 @@ class EnhancedForecastService {
    */
   async parseForecastResults(outputFile) {
     try {
+      console.log(`   Reading output file: ${outputFile}`);
       const content = await fs.readFile(outputFile, 'utf8');
+      console.log(`   File size: ${content.length} bytes`);
+      
+      console.log(`   Parsing JSON...`);
       const results = JSON.parse(content);
+      console.log(`   ✅ JSON parsed successfully`);
 
       console.log(`📊 Forecast Results Summary:`);
       console.log(`   - Total forecasts: ${results.forecasts.length}`);
@@ -189,19 +194,22 @@ class EnhancedForecastService {
       console.log(`   - Total barangays: ${results.metadata.total_barangays}`);
       
       // DEBUG: Check if graph_data exists
+      console.log(`   Checking for graph_data...`);
       if (results.graph_data) {
-        console.log(`   - Graph data records: ${results.graph_data.length}`);
+        console.log(`   - ✅ Graph data found: ${results.graph_data.length} records`);
         if (results.graph_data.length > 0) {
-          console.log(`   - Graph data sample:`, results.graph_data[0]);
+          console.log(`   - First record:`, JSON.stringify(results.graph_data[0]));
         }
       } else {
         console.log(`   - ⚠️ WARNING: graph_data is missing from Python output!`);
         console.log(`   - Available keys in results:`, Object.keys(results));
       }
 
+      console.log(`   Returning parsed results...`);
       return results;
     } catch (err) {
-      console.error('❌ Error parsing forecast results:', err);
+      console.error('❌ Error parsing forecast results:', err.message);
+      console.error('   Error stack:', err.stack);
       throw err;
     }
   }
@@ -439,6 +447,7 @@ class EnhancedForecastService {
       // Step 4: Parse results
       console.log('\nStep 4/6: Parsing forecast results...');
       const results = await this.parseForecastResults(outputFile);
+      console.log('✅ Step 4 complete - results parsed');
 
       // Step 5: Store forecasts in database
       console.log('\nStep 5/6: Storing forecasts in database...');
