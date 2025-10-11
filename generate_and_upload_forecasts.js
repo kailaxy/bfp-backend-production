@@ -24,11 +24,12 @@ const path = require('path');
 // Load environment variables
 require('dotenv').config();
 
-const PRODUCTION_DB_URL = process.env.DATABASE_URL || process.env.PRODUCTION_DATABASE_URL;
+// Prefer explicit production DB URL env var, fall back to generic DATABASE_URL or RENDER_DATABASE_URL
+const PRODUCTION_DB_URL = process.env.PRODUCTION_DATABASE_URL || process.env.DATABASE_URL || process.env.RENDER_DATABASE_URL;
 
 if (!PRODUCTION_DB_URL) {
-  console.error('❌ DATABASE_URL or PRODUCTION_DATABASE_URL environment variable is required');
-  console.log('\nSet it in your .env file:');
+  console.error('❌ PRODUCTION_DATABASE_URL or DATABASE_URL (Render) environment variable is required');
+  console.log('\nSet it in your .env file or in the environment:');
   console.log('PRODUCTION_DATABASE_URL=postgresql://user:pass@host:port/database');
   process.exit(1);
 }
@@ -48,15 +49,10 @@ class LocalForecastGenerator {
   }
 
   async fetchHistoricalData() {
-    const client = new Client({ 
-      host: 'dpg-d35r1s2li9vc738l9f70-a.singapore-postgres.render.com',
-      port: 5432,
-      database: 'bfpmapping_nua2',
-      user: 'bfpmapping_nua2_user',
-      password: 'mDB9Q1s6mnnTyX6gzqSMD5CTphUsvR6L',
-      ssl: {
-        rejectUnauthorized: false
-      }
+    // Use the canonical connection string (PRODUCTION_DB_URL) to connect. SSL enablement is handled by the connectionString or env.
+    const client = new Client({
+      connectionString: PRODUCTION_DB_URL,
+      ssl: { rejectUnauthorized: false }
     });
     
     try {

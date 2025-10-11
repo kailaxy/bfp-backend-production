@@ -9,8 +9,12 @@ const { Pool } = require('pg');
 
 // Railway Production Database URL (from Railway dashboard)
 // You can also set this as an environment variable: RAILWAY_DATABASE_URL
-const DATABASE_URL = process.env.RAILWAY_DATABASE_URL || 
-  'postgresql://postgres:IVcKXmFkHbkQdBlIrvfQtCllMoKcTBDD@autorack.proxy.rlwy.net:21749/railway';
+const DATABASE_URL = process.env.RAILWAY_DATABASE_URL || process.env.DATABASE_URL;
+
+if (!DATABASE_URL) {
+  console.error('❌ ERROR: RAILWAY_DATABASE_URL or DATABASE_URL not set. Please set the DB connection string in the environment.');
+  process.exit(1);
+}
 
 const pool = new Pool({
   connectionString: DATABASE_URL,

@@ -10,39 +10,22 @@ const { Client } = require('pg');
 const fs = require('fs').promises;
 const path = require('path');
 
-// Multiple connection configurations to try
+// Prefer using an explicit connection string from the environment to avoid embedding credentials.
+const renderConnectionString = process.env.PRODUCTION_DATABASE_URL || process.env.RENDER_DATABASE_URL || process.env.DATABASE_URL;
+
+if (!renderConnectionString) {
+  console.error('❌ ERROR: No Render connection string found. Set PRODUCTION_DATABASE_URL or RENDER_DATABASE_URL or DATABASE_URL in the environment.');
+  process.exit(1);
+}
+
 const connectionConfigs = [
   {
-    name: 'SSL Prefer',
+    name: 'Connection String (env)',
     config: {
-      host: 'dpg-d35r1s211gvc73819f70-a.oregon-postgres.render.com',
-      port: 5432,
-      database: 'bfpmapping_nua2',
-      user: 'bfpmapping_nua2_user',
-      password: 'mDB9Q1s6mnnTyX6gzqSMD5CTphUsvR6L',
+      connectionString: renderConnectionString,
       ssl: { rejectUnauthorized: false },
       connectionTimeoutMillis: 30000,
       query_timeout: 60000,
-    }
-  },
-  {
-    name: 'SSL Required',
-    config: {
-      host: 'dpg-d35r1s211gvc73819f70-a.oregon-postgres.render.com',
-      port: 5432,
-      database: 'bfpmapping_nua2',
-      user: 'bfpmapping_nua2_user',
-      password: 'mDB9Q1s6mnnTyX6gzqSMD5CTphUsvR6L',
-      ssl: { rejectUnauthorized: false, sslmode: 'require' },
-      connectionTimeoutMillis: 30000,
-    }
-  },
-  {
-    name: 'Connection String',
-    config: {
-      connectionString: 'postgresql://bfpmapping_nua2_user:mDB9Q1s6mnnTyX6gzqSMD5CTphUsvR6L@dpg-d35r1s211gvc73819f70-a.oregon-postgres.render.com:5432/bfpmapping_nua2?sslmode=prefer',
-      ssl: { rejectUnauthorized: false },
-      connectionTimeoutMillis: 30000,
     }
   }
 ];
