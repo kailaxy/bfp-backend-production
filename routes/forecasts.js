@@ -450,6 +450,95 @@ router.get('/models/summary', authenticateJWT, requireAdmin, async (req, res) =>
 });
 
 /**
+ * GET /api/forecasts/graphs/:barangay
+ * Get graph visualization data for a specific barangay
+ * Returns 6 datasets: actual, fitted, forecast, ci_lower, ci_upper, moving_avg_6
+ */
+router.get('/graphs/:barangay', authenticateJWT, async (req, res) => {
+  try {
+    const { barangay } = req.params;
+    
+    console.log(`📊 Fetching graph data for barangay: ${barangay}`);
+    
+    // Query all graph data for the barangay
+    const query = `
+      SELECT 
+        record_type,
+        date,
+        value
+      FROM forecasts_graphs
+      WHERE barangay = $1
+      ORDER BY date ASC, record_type
+    `;
+    
+    const result = await db.query(query, [barangay]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `No graph data found for barangay: ${barangay}`,
+        hint: 'Generate forecasts first to populate graph data'
+      });
+    }
+    
+    // Group data by record_type for easier frontend consumption
+    const graphData = {
+      actual: [],
+      fitted: [],
+      forecast: [],
+      ci_lower: [],
+      ci_upper: [],
+      moving_avg_6: []
+    };
+    
+    result.rows.forEach(row => {
+      const dataPoint = {
+        date: row.date,
+        value: parseFloat(row.value)
+      };
+      
+      if (graphData[row.record_type]) {
+        graphData[row.record_type].push(dataPoint);
+      }
+    });
+    
+    // Calculate metadata
+    const metadata = {
+      barangay,
+      total_records: result.rows.length,
+      date_range: {
+        start: result.rows[0]?.date,
+        end: result.rows[result.rows.length - 1]?.date
+      },
+      datasets: {
+        actual: graphData.actual.length,
+        fitted: graphData.fitted.length,
+        forecast: graphData.forecast.length,
+        ci_lower: graphData.ci_lower.length,
+        ci_upper: graphData.ci_upper.length,
+        moving_avg_6: graphData.moving_avg_6.length
+      }
+    };
+    
+    console.log(`✅ Retrieved ${result.rows.length} graph records for ${barangay}`);
+    
+    res.json({
+      success: true,
+      barangay,
+      data: graphData,
+      metadata
+    });
+    
+  } catch (error) {
+    console.error('❌ Error fetching graph data:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch graph data: ' + error.message
+    });
+  }
+});
+
+/**
  * POST /api/forecasts/migrate-graph-table
  * Create forecasts_graphs table for graph visualization (Admin only, one-time setup)
  */
