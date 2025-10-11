@@ -298,9 +298,27 @@ class EnhancedForecastService {
 
       console.log(`📊 Storing ${graphData.length} graph data records...`);
 
+      // First check if table exists
+      const tableCheck = await client.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'forecasts_graphs'
+        );
+      `);
+      
+      if (!tableCheck.rows[0].exists) {
+        console.error('❌ ERROR: forecasts_graphs table does not exist!');
+        console.error('   Run migration to create the table first.');
+        await client.query('ROLLBACK');
+        return 0;
+      }
+      
+      console.log('   ✅ Table exists, proceeding with data storage...');
+
       // Delete all existing graph data (fresh start on each generation)
-      await client.query('DELETE FROM forecasts_graphs');
-      console.log('   Cleared existing graph data');
+      const deleteResult = await client.query('DELETE FROM forecasts_graphs');
+      console.log(`   Cleared ${deleteResult.rowCount || 0} existing graph data records`);
 
       // Batch insert for performance
       const batchSize = 500;
@@ -359,8 +377,12 @@ class EnhancedForecastService {
       return insertCount;
     } catch (err) {
       await client.query('ROLLBACK');
-      console.error('❌ Error storing graph data:', err);
-      throw err;
+      console.error('❌ Error storing graph data:', err.message);
+      console.error('   Error code:', err.code);
+      console.error('   Error detail:', err.detail);
+      console.error('   Full error:', err);
+      // Don't throw - return 0 to indicate failure but continue
+      return 0;
     } finally {
       client.release();
     }
