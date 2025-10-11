@@ -450,6 +450,48 @@ router.get('/models/summary', authenticateJWT, requireAdmin, async (req, res) =>
 });
 
 /**
+ * GET /api/forecasts/test-table-exists
+ * Test endpoint to check if forecasts_graphs table exists
+ */
+router.get('/test-table-exists', authenticateJWT, async (req, res) => {
+  try {
+    console.log('🔍 Testing if forecasts_graphs table exists...');
+    
+    // Try to query the table
+    const testQuery = `
+      SELECT COUNT(*) as count 
+      FROM forecasts_graphs 
+      LIMIT 1
+    `;
+    
+    const result = await db.query(testQuery);
+    
+    res.json({
+      success: true,
+      table_exists: true,
+      row_count: parseInt(result.rows[0].count),
+      message: 'forecasts_graphs table exists and is queryable'
+    });
+    
+  } catch (error) {
+    console.error('❌ Table test failed:', error.message);
+    
+    // Check if error is "relation does not exist"
+    const tableDoesNotExist = error.message.includes('does not exist') || 
+                               error.message.includes('relation') ||
+                               error.code === '42P01';
+    
+    res.json({
+      success: false,
+      table_exists: false,
+      error_code: error.code,
+      error_message: error.message,
+      is_missing_table: tableDoesNotExist
+    });
+  }
+});
+
+/**
  * GET /api/forecasts/graphs/:barangay
  * Get graph visualization data for a specific barangay
  * Returns 6 datasets: actual, fitted, forecast, ci_lower, ci_upper, moving_avg_6
