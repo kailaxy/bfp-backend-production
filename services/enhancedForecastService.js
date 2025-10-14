@@ -65,11 +65,22 @@ class EnhancedForecastService {
   async prepareInputFile(historicalData, forecastMonths = 13, targetDate = null) {
     await this.ensureTempDir();
 
-    const now = new Date();
-    // Forecast starts from current month
-    const forecastStartObj = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startYear = forecastStartObj.getFullYear();
-    const startMonth = forecastStartObj.getMonth() + 1; // JavaScript months are 0-indexed
+    // ✅ FIX: Forecast from the month AFTER the last historical data
+    // Find the most recent date in historical data
+    const sortedData = historicalData.sort((a, b) => b.date.localeCompare(a.date));
+    const lastHistoricalDate = sortedData[0].date; // Format: "YYYY-MM"
+    const [lastYear, lastMonth] = lastHistoricalDate.split('-').map(Number);
+    
+    // Calculate next month after last historical data
+    let startMonth = lastMonth + 1;
+    let startYear = lastYear;
+    if (startMonth > 12) {
+      startMonth = 1;
+      startYear += 1;
+    }
+
+    console.log(`   Last historical data: ${lastHistoricalDate}`);
+    console.log(`   Forecasting from: ${startYear}-${startMonth.toString().padStart(2, '0')}`);
 
     const inputData = {
       historical_data: historicalData.map(row => ({

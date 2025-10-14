@@ -102,10 +102,10 @@ def forecast_barangay_fires_12months(historical_data, start_year, start_month):
         s = s.reindex(full_index, fill_value=0).astype(float)
         s.index.freq = 'MS'
         
-        # Calculate steps needed for the furthest forecast (12 months out)
-        last_period = pd.Period(s.index.max(), freq='M')
-        furthest_target = pd.Period(f'{target_periods[-1][0]}-{target_periods[-1][1]:02d}', freq='M')
-        max_steps = int((furthest_target - last_period).n)
+        # ✅ FIX: Always forecast exactly 12 steps from the last historical data
+        # This ensures we're using the 12-month horizon like Colab, not longer periods
+        # Longer forecast horizons (e.g., 23 months) cause predictions to regress to mean
+        max_steps = 12
         
         forecast_series = pd.Series(dtype=float)
         forecast_ci = pd.DataFrame()
