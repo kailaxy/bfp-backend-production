@@ -311,6 +311,60 @@ class EnhancedForecastService {
   }
 
   /**
+   * Generate graph data from forecasts and historical data
+   */
+  async generateGraphData() {
+    const client = await db.pool.connect();
+    
+    try {
+      console.log('📊 Generating graph data from forecasts and historical data...');
+      
+      // Delete old forecast graph data
+      await client.query("DELETE FROM forecasts_graphs WHERE record_type = 'forecast'");
+      
+      // Insert forecast data from forecasts table
+      const forecastResult = await client.query(`
+        INSERT INTO forecasts_graphs (barangay, record_type, date, value)
+        SELECT 
+          barangay_name,
+          'forecast' as record_type,
+          DATE(year || '-' || LPAD(month::text, 2, '0') || '-01') as date,
+          predicted_cases as value
+        FROM forecasts
+        ORDER BY barangay_name, year, month
+      `);
+      
+      console.log(`   ✅ Inserted ${forecastResult.rowCount} forecast records`);
+      
+      // Insert/update historical data from historical_fires table
+      const historicalResult = await client.query(`
+        INSERT INTO forecasts_graphs (barangay, record_type, date, value)
+        SELECT 
+          barangay,
+          'historical' as record_type,
+          DATE(TO_CHAR(resolved_at, 'YYYY-MM') || '-01') as date,
+          COUNT(*) as value
+        FROM historical_fires
+        WHERE barangay IS NOT NULL 
+          AND barangay != ''
+          AND resolved_at IS NOT NULL
+        GROUP BY barangay, TO_CHAR(resolved_at, 'YYYY-MM')
+        ON CONFLICT (barangay, record_type, date) 
+        DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP
+      `);
+      
+      console.log(`   ✅ Inserted/updated ${historicalResult.rowCount} historical records`);
+      
+      return forecastResult.rowCount + historicalResult.rowCount;
+    } catch (err) {
+      console.error('❌ Error generating graph data:', err.message);
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
    * Store graph data in database for visualization
    * This includes actual, fitted, forecast, CI bounds, and moving averages
    */
@@ -483,9 +537,9 @@ class EnhancedForecastService {
       console.log('\nStep 5/6: Storing forecasts in database...');
       const insertCount = await this.storeForecastsInDatabase(forecasts, metadata);
 
-      // Step 6: Store graph data in database (NEW)
-      console.log('\nStep 6/6: Storing graph data for visualization...');
-      const graphInsertCount = await this.storeGraphDataInDatabase(results.graph_data || []);
+      // Step 6: Generate and store graph data for visualization
+      console.log('\nStep 6/6: Generating graph data for visualization...');
+      const graphInsertCount = await this.generateGraphData();
 
       // Cleanup
       if (!keepTempFiles) {
