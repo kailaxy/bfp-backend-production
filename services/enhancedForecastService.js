@@ -217,7 +217,17 @@ class EnhancedForecastService {
     try {
       await client.query('BEGIN');
 
-      console.log(`💾 Storing ${forecasts.length} forecasts in database...`);
+      // Delete all existing future forecasts (from current month onwards)
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth() + 1;
+      const deleteResult = await client.query(`
+        DELETE FROM forecasts 
+        WHERE (year > $1) OR (year = $1 AND month >= $2)
+      `, [currentYear, currentMonth]);
+      
+      console.log(`�️  Deleted ${deleteResult.rowCount} existing future forecasts`);
+      console.log(`�💾 Storing ${forecasts.length} new forecasts in database...`);
 
       // Store each forecast
       let insertCount = 0;
