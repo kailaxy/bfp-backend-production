@@ -560,7 +560,7 @@ app.get('/api/admin/test-monthly-report', async (req, res) => {
     const countTest = await db.query(`
       SELECT COUNT(*) as dec_2024_count
       FROM historical_fires 
-      WHERE reported_at >= $1 AND reported_at <= $2
+      WHERE resolved_at >= $1 AND resolved_at <= $2
     `, [startDate, endDate]);
     
     // Test barangay query
@@ -569,7 +569,7 @@ app.get('/api/admin/test-monthly-report', async (req, res) => {
         barangay,
         COUNT(*) as incident_count
       FROM historical_fires 
-      WHERE reported_at >= $1 AND reported_at <= $2 AND barangay IS NOT NULL AND barangay != ''
+      WHERE resolved_at >= $1 AND resolved_at <= $2 AND barangay IS NOT NULL AND barangay != ''
       GROUP BY barangay
       ORDER BY incident_count DESC
       LIMIT 3
@@ -585,7 +585,7 @@ app.get('/api/admin/test-monthly-report', async (req, res) => {
         END as simple_cause,
         COUNT(*) as count
       FROM historical_fires 
-      WHERE reported_at >= $1 AND reported_at <= $2
+      WHERE resolved_at >= $1 AND resolved_at <= $2
       GROUP BY simple_cause
     `, [startDate, endDate]);
     
@@ -637,7 +637,7 @@ app.get('/api/admin/generate-monthly-report-simple', async (req, res) => {
     const countQuery = `
       SELECT COUNT(*) as total_incidents
       FROM historical_fires 
-      WHERE reported_at >= $1 AND reported_at <= $2
+      WHERE resolved_at >= $1 AND resolved_at <= $2
     `;
     const count = await db.query(countQuery, [startDate, endDate]);
     const totalIncidents = parseInt(count.rows[0].total_incidents) || 0;
@@ -650,7 +650,7 @@ app.get('/api/admin/generate-monthly-report-simple', async (req, res) => {
           barangay,
           COUNT(*) as incident_count
         FROM historical_fires 
-        WHERE reported_at >= $1 AND reported_at <= $2 AND barangay IS NOT NULL AND barangay != ''
+        WHERE resolved_at >= $1 AND resolved_at <= $2 AND barangay IS NOT NULL AND barangay != ''
         GROUP BY barangay
         ORDER BY incident_count DESC
         LIMIT 10
@@ -675,7 +675,7 @@ app.get('/api/admin/generate-monthly-report-simple', async (req, res) => {
               ELSE 'Residential/Community Fire'
             END as cause
           FROM historical_fires 
-          WHERE reported_at >= $1 AND reported_at <= $2
+          WHERE resolved_at >= $1 AND resolved_at <= $2
         ) cause_analysis
         GROUP BY cause
         ORDER BY case_count DESC
@@ -695,8 +695,8 @@ app.get('/api/admin/generate-monthly-report-simple', async (req, res) => {
           reported_at,
           reported_by
         FROM historical_fires 
-        WHERE reported_at >= $1 AND reported_at <= $2
-        ORDER BY reported_at DESC
+        WHERE resolved_at >= $1 AND resolved_at <= $2
+        ORDER BY resolved_at DESC
         LIMIT 5
       `;
       incidentDetails = await db.query(incidentDetailsQuery, [startDate, endDate]);
@@ -835,7 +835,7 @@ app.get('/api/admin/generate-monthly-report', async (req, res) => {
                  THEN EXTRACT(EPOCH FROM (resolved_at - reported_at))/60 
                  ELSE 45 END) as avg_duration_minutes
       FROM historical_fires 
-      WHERE reported_at >= $1 AND reported_at < $2
+      WHERE resolved_at >= $1 AND resolved_at < $2
     `;
     
     const summary = await db.query(summaryQuery, [startDate, endDate]);
@@ -856,7 +856,7 @@ app.get('/api/admin/generate-monthly-report', async (req, res) => {
         COALESCE(SUM(CASE WHEN casualties IS NOT NULL AND casualties::text != '' AND casualties > 0 THEN casualties ELSE 0 END), 0) as casualties,
         COALESCE(SUM(CASE WHEN injuries IS NOT NULL AND injuries::text != '' AND injuries > 0 THEN injuries ELSE 0 END), 0) as injuries
       FROM historical_fires 
-      WHERE reported_at >= $1 AND reported_at < $2 AND barangay IS NOT NULL AND barangay != ''
+      WHERE resolved_at >= $1 AND resolved_at < $2 AND barangay IS NOT NULL AND barangay != ''
       GROUP BY barangay
       ORDER BY incident_count DESC, total_damage DESC
       LIMIT 10
@@ -877,8 +877,8 @@ app.get('/api/admin/generate-monthly-report', async (req, res) => {
         COALESCE(actions_taken, 'Fire suppression response') as action_taken,
         COALESCE(barangay, 'Unknown') as barangay
       FROM historical_fires 
-      WHERE reported_at >= $1 AND reported_at < $2
-      ORDER BY reported_at DESC
+      WHERE resolved_at >= $1 AND resolved_at < $2
+      ORDER BY resolved_at DESC
       LIMIT 10
     `;
     
@@ -895,8 +895,8 @@ app.get('/api/admin/generate-monthly-report', async (req, res) => {
         COALESCE(cause, 'N/A') as cause,
         estimated_damage
       FROM historical_fires 
-      WHERE reported_at >= $1 AND reported_at < $2
-      ORDER BY reported_at ASC
+      WHERE resolved_at >= $1 AND resolved_at < $2
+      ORDER BY resolved_at ASC
     `;
     
     const allIncidents = await db.query(allIncidentsQuery, [startDate, endDate]);
@@ -916,7 +916,7 @@ app.get('/api/admin/generate-monthly-report', async (req, res) => {
             ELSE 'Undetermined'
           END as cause
         FROM historical_fires 
-        WHERE reported_at >= $1 AND reported_at < $2
+        WHERE resolved_at >= $1 AND resolved_at < $2
       ) cause_analysis
       GROUP BY cause
       ORDER BY case_count DESC
@@ -936,7 +936,7 @@ app.get('/api/admin/generate-monthly-report', async (req, res) => {
         END as damage_range,
         COUNT(*) as incident_count
       FROM historical_fires 
-      WHERE reported_at >= $1 AND reported_at < $2
+      WHERE resolved_at >= $1 AND resolved_at < $2
       GROUP BY damage_range
       ORDER BY 
         CASE damage_range
@@ -955,7 +955,7 @@ app.get('/api/admin/generate-monthly-report', async (req, res) => {
         COALESCE(reported_by, 'System') as reported_by,
         COUNT(*) as report_count
       FROM historical_fires 
-      WHERE reported_at >= $1 AND reported_at < $2
+      WHERE resolved_at >= $1 AND resolved_at < $2
       GROUP BY reported_by
       ORDER BY report_count DESC
       LIMIT 10
@@ -1120,8 +1120,8 @@ app.get('/api/admin/check-damage-values', async (req, res) => {
         END as damage_status,
         pg_typeof(estimated_damage) as data_type
       FROM historical_fires 
-      WHERE reported_at >= $1 AND reported_at <= $2
-      ORDER BY reported_at ASC
+      WHERE resolved_at >= $1 AND resolved_at <= $2
+      ORDER BY resolved_at ASC
     `;
     
     const rawData = await db.query(rawDataQuery, [startDate, endDate]);
@@ -1343,7 +1343,7 @@ app.get('/api/admin/generate-monthly-report-simple-fix', async (req, res) => {
           ELSE 0 
         END), 0) as total_injuries
       FROM historical_fires 
-      WHERE reported_at >= $1 AND reported_at <= $2
+      WHERE resolved_at >= $1 AND resolved_at <= $2
     `;
     
     const summaryResult = await db.query(summaryQuery, [startDate, endDate]);
@@ -1365,7 +1365,7 @@ app.get('/api/admin/generate-monthly-report-simple-fix', async (req, res) => {
           COALESCE(SUM(CASE WHEN casualties IS NOT NULL AND casualties > 0 THEN casualties ELSE 0 END), 0) as casualties,
           COALESCE(SUM(CASE WHEN injuries IS NOT NULL AND injuries > 0 THEN injuries ELSE 0 END), 0) as injuries
          FROM historical_fires 
-         WHERE reported_at >= $1 AND reported_at <= $2 AND barangay IS NOT NULL AND barangay != ''
+         WHERE resolved_at >= $1 AND resolved_at <= $2 AND barangay IS NOT NULL AND barangay != ''
          GROUP BY barangay ORDER BY incident_count DESC LIMIT 10`,
         [startDate, endDate]
       );
@@ -1379,8 +1379,8 @@ app.get('/api/admin/generate-monthly-report-simple-fix', async (req, res) => {
       const detailsResult = await db.query(
         `SELECT id, barangay, address, alarm_level, reported_at, reported_by
          FROM historical_fires 
-         WHERE reported_at >= $1 AND reported_at <= $2
-         ORDER BY reported_at DESC LIMIT 5`,
+         WHERE resolved_at >= $1 AND resolved_at <= $2
+         ORDER BY resolved_at DESC LIMIT 5`,
         [startDate, endDate]
       );
       incidentDetails = detailsResult.rows;
@@ -1389,8 +1389,8 @@ app.get('/api/admin/generate-monthly-report-simple-fix', async (req, res) => {
       const allIncidentsResult = await db.query(
         `SELECT id, barangay, address, alarm_level, reported_at, cause, estimated_damage
          FROM historical_fires 
-         WHERE reported_at >= $1 AND reported_at <= $2
-         ORDER BY reported_at ASC`,
+         WHERE resolved_at >= $1 AND resolved_at <= $2
+         ORDER BY resolved_at ASC`,
         [startDate, endDate]
       );
       allIncidents = allIncidentsResult.rows;
