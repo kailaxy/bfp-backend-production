@@ -68,13 +68,8 @@ class EnhancedForecastService {
     const now = new Date();
     // Forecast starts from current month
     const forecastStartObj = new Date(now.getFullYear(), now.getMonth(), 1);
-    const forecastStart = forecastStartObj.toISOString().split('T')[0];
-    
-    // Default target date to forecastMonths from now
-    if (!targetDate) {
-      const targetDateObj = new Date(now.getFullYear(), now.getMonth() + forecastMonths, 1);
-      targetDate = targetDateObj.toISOString().split('T')[0];
-    }
+    const startYear = forecastStartObj.getFullYear();
+    const startMonth = forecastStartObj.getMonth() + 1; // JavaScript months are 0-indexed
 
     const inputData = {
       historical_data: historicalData.map(row => ({
@@ -82,9 +77,8 @@ class EnhancedForecastService {
         date: row.date + '-01', // Add day for ISO format
         incident_count: parseInt(row.incident_count)
       })),
-      forecast_months: forecastMonths,
-      forecast_start: forecastStart,
-      target_date: targetDate
+      start_year: startYear,
+      start_month: startMonth
     };
 
     const inputFile = path.join(this.tempDir, `forecast_input_${Date.now()}.json`);
@@ -93,8 +87,8 @@ class EnhancedForecastService {
     console.log(`📝 Input file prepared: ${inputFile}`);
     console.log(`   - Barangays: ${new Set(historicalData.map(r => r.barangay)).size}`);
     console.log(`   - Date range: ${historicalData[0]?.date} to ${historicalData[historicalData.length - 1]?.date}`);
-    console.log(`   - Forecast months: ${forecastMonths}`);
-    console.log(`   - Target date: ${targetDate}`);
+    console.log(`   - Start: ${startYear}-${startMonth.toString().padStart(2, '0')}`);
+    console.log(`   - Forecast months: 12`);
 
     return inputFile;
   }
