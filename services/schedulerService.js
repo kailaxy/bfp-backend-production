@@ -169,7 +169,7 @@ class SchedulerService {
   // Execute Python ARIMA script
   executePythonScript(inputFile, outputFile) {
     return new Promise((resolve, reject) => {
-      const pythonScript = path.join(__dirname, '../forecasting/arima_forecast.py');
+      const pythonScript = path.join(__dirname, '../forecasting/arima_forecast_12months.py');
       const command = `python "${pythonScript}" "${inputFile}" "${outputFile}"`;
       
       console.log(`[Scheduler] Executing: ${command}`);

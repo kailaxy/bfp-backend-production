@@ -5,7 +5,7 @@ const db = require('../db');
 
 class ForecastingService {
   constructor() {
-    this.pythonScript = path.join(__dirname, '../forecasting/arima_forecast.py');
+    this.pythonScript = path.join(__dirname, '../forecasting/arima_forecast_12months.py');
     this.tempDir = path.join(__dirname, '../temp');
   }
 

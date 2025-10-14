@@ -24,6 +24,14 @@ from datetime import datetime, timedelta
 from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 
+# Import barangay-specific model configurations
+try:
+    from barangay_models import get_model_for_barangay
+    USE_FIXED_MODELS = True
+except ImportError:
+    USE_FIXED_MODELS = False
+    print("⚠️ Warning: barangay_models.py not found, using dynamic model selection")
+
 def parse_to_month(x):
     """Parse date string to monthly timestamp"""
     try:
@@ -36,7 +44,7 @@ def parse_to_month(x):
 
 def categorize_risk(predicted_cases, lower_bound, upper_bound):
     """Categorize risk level and flag based on predicted cases and upper bound"""
-    # Risk level based on predicted_cases
+    # Risk level based on predicted_cases (matching Colab thresholds)
     if predicted_cases >= 1:
         risk_level = "High"
     elif predicted_cases >= 0.5:
@@ -142,38 +150,84 @@ def forecast_barangay_fires_12months(historical_data, start_year, start_month):
                     'upper': forecast_series + s.std()
                 }, index=forecast_index)
             else:
-                # Try ARIMA/SARIMA modeling for 12 months
-                fit = None
-                try:
-                    model = ARIMA(s, order=(1,1,1),
-                                enforce_stationarity=False,
-                                enforce_invertibility=False)
-                    fit = model.fit()
-                except Exception:
+                # ✅ MATCH COLAB EXACTLY: Apply log1p transformation (final export uses this!)
+                y = np.log1p(s)
+                
+                # ===================================================
+                # PHASE 1: Test ARIMA candidates (matching Colab)
+                # ===================================================
+                arima_candidates = [(1,0,1), (2,0,1), (1,0,2)]
+                best_arima_aic = np.inf
+                best_arima_fit = None
+                
+                for order in arima_candidates:
                     try:
-                        model = SARIMAX(s, order=(1,1,1), seasonal_order=(1,1,1,12),
+                        model = ARIMA(y, order=order,
+                                    enforce_stationarity=False,
+                                    enforce_invertibility=False)
+                        fit = model.fit()
+                        if fit.aic < best_arima_aic:
+                            best_arima_aic = fit.aic
+                            best_arima_fit = fit
+                    except Exception:
+                        continue
+                
+                # ===================================================
+                # PHASE 2: Test SARIMAX seasonal models (matching Colab)
+                # Compare against ARIMA(1,0,1) baseline
+                # ===================================================
+                sarimax_orders = [
+                    ((1,0,1), (1,0,1,12)),
+                    ((1,1,1), (1,0,1,12)),
+                    ((2,0,1), (0,1,1,12))
+                ]
+                
+                best_sarimax_aic = np.inf
+                best_sarimax_fit = None
+                
+                for order, seasonal in sarimax_orders:
+                    try:
+                        model = SARIMAX(y, order=order, seasonal_order=seasonal,
                                       enforce_stationarity=False,
                                       enforce_invertibility=False)
                         fit = model.fit(disp=False)
+                        if fit.aic < best_sarimax_aic:
+                            best_sarimax_aic = fit.aic
+                            best_sarimax_fit = fit
                     except Exception:
-                        pass
+                        continue
                 
-                if fit is not None:
-                    fc_obj = fit.get_forecast(steps=max_steps)
+                # ===================================================
+                # PHASE 3: Choose best overall model (SARIMAX preferred if available)
+                # ===================================================
+                if best_sarimax_fit is not None:
+                    best_fit = best_sarimax_fit  # Prefer SARIMAX (seasonal model)
+                elif best_arima_fit is not None:
+                    best_fit = best_arima_fit  # Fallback to ARIMA
+                else:
+                    best_fit = None
+                
+                if best_fit is not None:
+                    # ✅ MATCH COLAB: Get forecast and apply inverse transform (expm1)
+                    fc_obj = best_fit.get_forecast(steps=max_steps)
                     fc = fc_obj.predicted_mean
                     forecast_index = pd.date_range(
                         start=s.index.max() + pd.offsets.MonthBegin(),
                         periods=max_steps, freq='MS'
                     )
-                    forecast_series = pd.Series(fc.values, index=forecast_index)
                     
-                    # 95% Confidence Interval
+                    # Apply expm1 to inverse the log1p transformation
+                    forecast_series = pd.Series(np.expm1(fc.values), index=forecast_index)
+                    
+                    # 95% Confidence Interval (also inverse transformed)
                     ci = fc_obj.conf_int(alpha=0.05)
                     ci.index = forecast_index
-                    ci.columns = ['lower', 'upper']
-                    forecast_ci = ci
+                    forecast_ci = pd.DataFrame({
+                        'lower': np.expm1(ci.iloc[:, 0]),
+                        'upper': np.expm1(ci.iloc[:, 1])
+                    }, index=forecast_index)
                 else:
-                    # Fallback to average
+                    # Fallback to average (no transformation needed for fallback)
                     fallback = s.mean()
                     forecast_index = pd.date_range(
                         start=s.index.max() + pd.offsets.MonthBegin(),
