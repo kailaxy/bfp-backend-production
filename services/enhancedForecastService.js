@@ -216,10 +216,32 @@ class EnhancedForecastService {
       // Store each forecast
       let insertCount = 0;
       for (const forecast of forecasts) {
-        // Parse forecast_month to extract year and month
-        const forecastDate = new Date(forecast.forecast_month);
-        const year = forecastDate.getFullYear();
-        const month = forecastDate.getMonth() + 1; // JavaScript months are 0-indexed
+        // Handle both old and new format
+        let year, month;
+        if (forecast.year && forecast.month) {
+          // New format from arima_forecast_12months.py
+          year = forecast.year;
+          month = forecast.month;
+        } else if (forecast.forecast_month) {
+          // Old format - parse date
+          const forecastDate = new Date(forecast.forecast_month);
+          year = forecastDate.getFullYear();
+          month = forecastDate.getMonth() + 1;
+        } else {
+          console.warn(`⚠️ Skipping forecast with invalid date format:`, forecast);
+          continue;
+        }
+
+        // Validate numeric values and convert NaN to null
+        const predicted_cases = isNaN(forecast.predicted_cases) ? null : forecast.predicted_cases;
+        const lower_bound = isNaN(forecast.lower_bound) ? null : forecast.lower_bound;
+        const upper_bound = isNaN(forecast.upper_bound) ? null : forecast.upper_bound;
+
+        // Skip if predicted_cases is null (invalid forecast)
+        if (predicted_cases === null) {
+          console.warn(`⚠️ Skipping forecast with NaN predicted_cases for ${forecast.barangay_name || forecast.barangay} ${year}-${month}`);
+          continue;
+        }
         
         const insertQuery = `
           INSERT INTO forecasts (
@@ -234,7 +256,7 @@ class EnhancedForecastService {
             model_used,
             confidence_interval,
             created_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
           ON CONFLICT (barangay_name, year, month) 
           DO UPDATE SET
             predicted_cases = EXCLUDED.predicted_cases,
@@ -248,17 +270,16 @@ class EnhancedForecastService {
         `;
 
         await client.query(insertQuery, [
-          forecast.barangay,
+          forecast.barangay_name || forecast.barangay,
           year,
           month,
-          forecast.predicted_cases,
-          forecast.lower_bound,
-          forecast.upper_bound,
-          forecast.risk_level,
-          forecast.risk_flag === true,
-          forecast.model_used,
-          forecast.confidence_interval,
-          metadata.generated_at
+          predicted_cases,
+          lower_bound,
+          upper_bound,
+          forecast.risk_level || 'Unknown',
+          forecast.risk_flag === 'Watchlist' || forecast.risk_flag === true,
+          forecast.model_used || 'ARIMA/SARIMAX',
+          forecast.confidence_interval || 0.95,
         ]);
 
         insertCount++;
