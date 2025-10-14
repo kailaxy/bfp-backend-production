@@ -110,13 +110,27 @@ class LocalForecastGenerator {
     return inputFile;
   }
 
+  getPythonCommand() {
+    // Railway uses venv
+    if (process.env.RAILWAY_ENVIRONMENT || process.env.RENDER) {
+      return '/opt/venv/bin/python3';
+    }
+    // Windows local
+    return 'py';
+  }
+
   async executePythonScript(inputFile, outputFile) {
     return new Promise((resolve, reject) => {
       console.log('🐍 Executing Python forecasting script...');
       console.log('   This may take 2-5 minutes...');
 
-      const python = spawn('py', [this.pythonScript, inputFile, outputFile], {
-        env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
+      const pythonCmd = this.getPythonCommand();
+      const python = spawn(pythonCmd, [this.pythonScript, inputFile, outputFile], {
+        env: { 
+          ...process.env, 
+          PYTHONIOENCODING: 'utf-8',
+          LD_LIBRARY_PATH: '/nix/store/*-zlib-*/lib:/nix/store/*-gcc-*/lib:' + (process.env.LD_LIBRARY_PATH || '')
+        }
       });
 
       let stdout = '';

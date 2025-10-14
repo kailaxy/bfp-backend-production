@@ -93,6 +93,19 @@ class ForecastingService {
   }
 
   /**
+   * Get Python command based on environment
+   * @returns {string} Python command
+   */
+  getPythonCommand() {
+    // Railway uses venv
+    if (process.env.RAILWAY_ENVIRONMENT || process.env.RENDER) {
+      return '/opt/venv/bin/python3';
+    }
+    // Windows local
+    return 'py';
+  }
+
+  /**
    * Execute the Python ARIMA script
    * @param {string} dataFile - Path to JSON data file
    * @param {number} targetYear - Target year
@@ -101,12 +114,18 @@ class ForecastingService {
    */
   runPythonScript(dataFile, targetYear, targetMonth) {
     return new Promise((resolve, reject) => {
-      const pythonProcess = spawn('py', [
+      const pythonCmd = this.getPythonCommand();
+      const pythonProcess = spawn(pythonCmd, [
         this.pythonScript,
         dataFile,
         targetYear.toString(),
         targetMonth.toString()
-      ]);
+      ], {
+        env: {
+          ...process.env,
+          LD_LIBRARY_PATH: '/nix/store/*-zlib-*/lib:/nix/store/*-gcc-*/lib:' + (process.env.LD_LIBRARY_PATH || '')
+        }
+      });
 
       let stdout = '';
       let stderr = '';

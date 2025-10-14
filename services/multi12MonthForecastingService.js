@@ -115,6 +115,19 @@ class Multi12MonthForecastingService {
   }
 
   /**
+   * Get Python command based on environment
+   * @returns {string} Python command
+   */
+  getPythonCommand() {
+    // Railway uses venv
+    if (process.env.RAILWAY_ENVIRONMENT || process.env.RENDER) {
+      return '/opt/venv/bin/python3';
+    }
+    // Windows local
+    return 'py';
+  }
+
+  /**
    * Execute the Python 12-month ARIMA script
    * @param {string} inputFile - Path to input JSON data file
    * @param {string} outputFile - Path to output JSON results file
@@ -122,11 +135,17 @@ class Multi12MonthForecastingService {
    */
   runPython12MonthScript(inputFile, outputFile) {
     return new Promise((resolve, reject) => {
-      const pythonProcess = spawn('py', [
+      const pythonCmd = this.getPythonCommand();
+      const pythonProcess = spawn(pythonCmd, [
         this.python12MonthScript,
         inputFile,
         outputFile
-      ]);
+      ], {
+        env: {
+          ...process.env,
+          LD_LIBRARY_PATH: '/nix/store/*-zlib-*/lib:/nix/store/*-gcc-*/lib:' + (process.env.LD_LIBRARY_PATH || '')
+        }
+      });
 
       let stdout = '';
       let stderr = '';

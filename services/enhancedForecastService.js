@@ -111,7 +111,7 @@ class EnhancedForecastService {
 
       // Use venv Python if available (Railway), otherwise system Python
       const fsSync = require('fs');
-      const pythonCmd = fsSync.existsSync('/opt/venv/bin/python3') ? '/opt/venv/bin/python3' : 'python';
+      const pythonCmd = fsSync.existsSync('/opt/venv/bin/python3') ? '/opt/venv/bin/python3' : 'py';
       console.log(`   Using Python: ${pythonCmd}`);
       
       // Set working directory to backend root
