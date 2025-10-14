@@ -39,13 +39,13 @@ class EnhancedForecastService {
     const query = `
       SELECT 
         barangay,
-        TO_CHAR(reported_at, 'YYYY-MM') as date,
+        TO_CHAR(resolved_at, 'YYYY-MM') as date,
         COUNT(*) as incident_count
       FROM historical_fires
       WHERE barangay IS NOT NULL 
         AND barangay != ''
-        AND reported_at IS NOT NULL
-      GROUP BY barangay, TO_CHAR(reported_at, 'YYYY-MM')
+        AND resolved_at IS NOT NULL
+      GROUP BY barangay, TO_CHAR(resolved_at, 'YYYY-MM')
       ORDER BY barangay, date
     `;
 
