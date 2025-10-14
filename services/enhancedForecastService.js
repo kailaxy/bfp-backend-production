@@ -220,8 +220,8 @@ class EnhancedForecastService {
         let year, month;
         if (forecast.year && forecast.month) {
           // New format from arima_forecast_12months.py
-          year = forecast.year;
-          month = forecast.month;
+          year = parseInt(forecast.year);
+          month = parseInt(forecast.month);
         } else if (forecast.forecast_month) {
           // Old format - parse date
           const forecastDate = new Date(forecast.forecast_month);
@@ -232,10 +232,16 @@ class EnhancedForecastService {
           continue;
         }
 
+        // Validate year and month are valid integers
+        if (isNaN(year) || isNaN(month) || year < 2000 || year > 2100 || month < 1 || month > 12) {
+          console.warn(`⚠️ Skipping forecast with invalid year/month: ${year}-${month} for ${forecast.barangay_name || forecast.barangay}`);
+          continue;
+        }
+
         // Validate numeric values and convert NaN to null
-        const predicted_cases = isNaN(forecast.predicted_cases) ? null : forecast.predicted_cases;
-        const lower_bound = isNaN(forecast.lower_bound) ? null : forecast.lower_bound;
-        const upper_bound = isNaN(forecast.upper_bound) ? null : forecast.upper_bound;
+        const predicted_cases = isNaN(parseFloat(forecast.predicted_cases)) ? null : parseFloat(forecast.predicted_cases);
+        const lower_bound = isNaN(parseFloat(forecast.lower_bound)) ? null : parseFloat(forecast.lower_bound);
+        const upper_bound = isNaN(parseFloat(forecast.upper_bound)) ? null : parseFloat(forecast.upper_bound);
 
         // Skip if predicted_cases is null (invalid forecast)
         if (predicted_cases === null) {
