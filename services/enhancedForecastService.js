@@ -178,15 +178,20 @@ class EnhancedForecastService {
       const results = JSON.parse(content);
 
       console.log(`📊 Forecast Results Summary:`);
-      console.log(`   - Total forecasts: ${results.forecasts.length}`);
-      console.log(`   - Successful barangays: ${results.metadata.successful_forecasts}`);
-      console.log(`   - Total barangays: ${results.metadata.total_barangays}`);
       
-      // Check if graph_data exists (don't log the data itself - too large)
-      if (results.graph_data && Array.isArray(results.graph_data)) {
-        console.log(`   - Graph data records: ${results.graph_data.length}`);
+      // Handle new format from arima_forecast_12months.py
+      if (results.all_forecasts) {
+        console.log(`   - Total forecasts: ${results.all_forecasts.length}`);
+        console.log(`   - Barangays covered: ${results.barangays_count}`);
+        console.log(`   - Months covered: ${results.total_months}`);
+        console.log(`   - Start: ${results.start_year}-${results.start_month}`);
+      } else if (results.forecasts) {
+        // Legacy format support
+        console.log(`   - Total forecasts: ${results.forecasts.length}`);
+        console.log(`   - Successful barangays: ${results.metadata?.successful_forecasts}`);
+        console.log(`   - Total barangays: ${results.metadata?.total_barangays}`);
       } else {
-        console.log(`   - ⚠️ WARNING: graph_data is missing or invalid!`);
+        console.log(`   - ⚠️ WARNING: No forecast data found!`);
         console.log(`   - Available keys:`, Object.keys(results).join(', '));
       }
 
@@ -432,12 +437,18 @@ class EnhancedForecastService {
       const results = await this.parseForecastResults(outputFile);
       console.log('✅ Step 4 complete - results parsed');
 
+      // Normalize results format (handle both old and new Python script outputs)
+      const forecasts = results.all_forecasts || results.forecasts || [];
+      const metadata = results.metadata || {
+        total_barangays: results.barangays_count || 0,
+        successful_forecasts: results.barangays_count || 0,
+        transform_method: 'log1p/expm1',
+        models_summary: {}
+      };
+
       // Step 5: Store forecasts in database
       console.log('\nStep 5/6: Storing forecasts in database...');
-      const insertCount = await this.storeForecastsInDatabase(
-        results.forecasts,
-        results.metadata
-      );
+      const insertCount = await this.storeForecastsInDatabase(forecasts, metadata);
 
       // Step 6: Store graph data in database (NEW)
       console.log('\nStep 6/6: Storing graph data for visualization...');
@@ -454,25 +465,25 @@ class EnhancedForecastService {
       console.log(`✅ Forecast Generation Complete`);
       console.log(`${'='.repeat(60)}`);
       console.log(`   Duration: ${duration}s`);
-      console.log(`   Forecasts generated: ${results.forecasts.length}`);
+      console.log(`   Forecasts generated: ${forecasts.length}`);
       console.log(`   Forecasts stored: ${insertCount}`);
       console.log(`   Graph records stored: ${graphInsertCount}`);
-      console.log(`   Barangays processed: ${results.metadata.total_barangays}`);
-      console.log(`   Successful: ${results.metadata.successful_forecasts}`);
-      console.log(`   Transform method: ${results.metadata.transform_method || 'N/A'}`);
-      console.log(`   Random seed: ${results.metadata.random_seed || 'N/A'}`);
+      console.log(`   Barangays processed: ${metadata.total_barangays}`);
+      console.log(`   Successful: ${metadata.successful_forecasts}`);
+      console.log(`   Transform method: ${metadata.transform_method || 'N/A'}`);
+      console.log(`   Random seed: ${metadata.random_seed || 'N/A'}`);
       console.log(`${'='.repeat(60)}\n`);
 
       return {
         success: true,
         duration: parseFloat(duration),
-        forecasts_generated: results.forecasts.length,
+        forecasts_generated: forecasts.length,
         forecasts_stored: insertCount,
         graph_records_stored: graphInsertCount,
-        barangays_processed: results.metadata.total_barangays,
-        successful_barangays: results.metadata.successful_forecasts,
-        models_summary: results.metadata.models_summary,
-        metadata: results.metadata
+        barangays_processed: metadata.total_barangays,
+        successful_barangays: metadata.successful_forecasts,
+        models_summary: metadata.models_summary,
+        metadata: metadata
       };
 
     } catch (err) {
