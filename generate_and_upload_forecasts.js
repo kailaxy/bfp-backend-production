@@ -36,7 +36,7 @@ if (!PRODUCTION_DB_URL) {
 
 class LocalForecastGenerator {
   constructor() {
-    this.pythonScript = path.join(__dirname, 'forecasting', 'arima_forecast_v2.py');
+    this.pythonScript = path.join(__dirname, 'forecasting', 'arima_forecast_12months.py');
     this.tempDir = path.join(__dirname, 'temp');
   }
 

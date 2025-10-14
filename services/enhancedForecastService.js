@@ -4,7 +4,7 @@
  * This service:
  * 1. Fetches historical fire data from PostgreSQL
  * 2. Prepares data in the format expected by Python script
- * 3. Calls the enhanced arima_forecast_v2.py
+ * 3. Calls the arima_forecast_12months.py (Colab-validated methodology)
  * 4. Parses results and stores in database
  * 5. Provides model selection details and diagnostics
  */
@@ -16,7 +16,7 @@ const path = require('path');
 
 class EnhancedForecastService {
   constructor() {
-    this.pythonScript = path.join(__dirname, '../forecasting/arima_forecast_v2.py');
+    this.pythonScript = path.join(__dirname, '../forecasting/arima_forecast_12months.py');
     this.tempDir = path.join(__dirname, '../temp');
   }
 
