@@ -341,7 +341,7 @@ class EnhancedForecastService {
         INSERT INTO forecasts_graphs (barangay, record_type, date, value)
         SELECT 
           barangay,
-          'historical' as record_type,
+          'actual' as record_type,
           DATE(TO_CHAR(resolved_at, 'YYYY-MM') || '-01') as date,
           COUNT(*) as value
         FROM historical_fires
