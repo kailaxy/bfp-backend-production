@@ -132,13 +132,16 @@ def forecast_barangay_fires_12months(historical_data, start_year, start_month):
                     'lower_bound': round(predicted_val, 3),
                     'upper_bound': round(predicted_val, 3),
                     'risk_level': risk_level,
-                    'risk_flag': risk_flag
+                    'risk_flag': risk_flag,
+                    'model_used': 'Historical Data'
                 })
         else:
             nonzero_counts = (s != 0).sum()
+            model_used = None  # Initialize model tracker
             
             if len(s) < 6 or nonzero_counts < 3:
                 # Insufficient data - use fallback average
+                model_used = "Mean Fallback (Insufficient Data)"
                 fallback = s.mean()
                 forecast_index = pd.date_range(
                     start=s.index.max() + pd.offsets.MonthBegin(),
@@ -200,12 +203,23 @@ def forecast_barangay_fires_12months(historical_data, start_year, start_month):
                 # ===================================================
                 # PHASE 3: Choose best overall model (SARIMAX preferred if available)
                 # ===================================================
+                model_used = None
                 if best_sarimax_fit is not None:
                     best_fit = best_sarimax_fit  # Prefer SARIMAX (seasonal model)
+                    # Extract model orders from the fit
+                    model_spec = best_sarimax_fit.specification
+                    order = model_spec['order']
+                    seasonal_order = model_spec['seasonal_order']
+                    model_used = f"SARIMAX{order}x{seasonal_order}"
                 elif best_arima_fit is not None:
                     best_fit = best_arima_fit  # Fallback to ARIMA
+                    # Extract model order from the fit
+                    model_spec = best_arima_fit.specification
+                    order = model_spec['order']
+                    model_used = f"ARIMA{order}"
                 else:
                     best_fit = None
+                    model_used = "Mean Fallback"
                 
                 if best_fit is not None:
                     # ✅ MATCH COLAB: Get forecast and apply inverse transform (expm1)
@@ -270,7 +284,8 @@ def forecast_barangay_fires_12months(historical_data, start_year, start_month):
                     'lower_bound': round(lower_val, 3),
                     'upper_bound': round(upper_val, 3),
                     'risk_level': risk_level,
-                    'risk_flag': risk_flag
+                    'risk_flag': risk_flag,
+                    'model_used': model_used
                 })
     
     return results
