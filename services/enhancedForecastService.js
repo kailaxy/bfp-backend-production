@@ -285,7 +285,7 @@ class EnhancedForecastService {
           forecast.risk_level || 'Unknown',
           forecast.risk_flag === 'Watchlist' || forecast.risk_flag === true,
           forecast.model_used || 'ARIMA/SARIMAX',
-          forecast.confidence_interval || 0.95,
+          95, // confidence_interval as integer percentage (95%)
         ]);
 
         insertCount++;
