@@ -264,6 +264,7 @@ router.post('/:id/resolve', async (req, res) => {
     injuries,
     estimated_damage,
     cause,
+    type_of_occupancy,
     actions_taken,
     verified_by,
     attachments = []
@@ -287,10 +288,11 @@ router.post('/:id/resolve', async (req, res) => {
       `INSERT INTO historical_fires
          (id, lat, lng, barangay, address, alarm_level, reported_at,
           resolved_at, casualties, injuries, estimated_damage,
-          cause, actions_taken, reported_by, verified_by, attachments)
+          cause, type_of_occupancy, actions_taken, 
+          reported_by, verified_by, attachments)
        VALUES
          ($1, $2, $3, $4, $5, $6, $7,
-          NOW(), $8, $9, $10, $11, $12, $13, $14, $15)`,
+          NOW(), $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
       [
         fire.id,
         fire.lat,
@@ -304,6 +306,7 @@ router.post('/:id/resolve', async (req, res) => {
         injuries      || null,
         estimated_damage || null,
         cause         || null,
+        type_of_occupancy || null,
         actions_taken || null,
         fire.reported_by,
         verified_by   || null,
