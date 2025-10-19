@@ -1298,18 +1298,50 @@ app.get('/api/admin/database-coverage-test', async (req, res) => {
 app.get('/api/admin/generate-monthly-report-simple-fix', async (req, res) => {
   try {
     const db = require('./config/db');
-    const { month, year } = req.query;
+    const { month, year, barangay, occupancy, cause, alarm } = req.query;
     const currentDate = new Date();
     const targetMonth = month ? parseInt(month) : currentDate.getMonth() + 1;
     const targetYear = year ? parseInt(year) : currentDate.getFullYear();
     
-    console.log(`📊 Generating SIMPLE FIXED monthly report for ${targetYear}-${targetMonth.toString().padStart(2, '0')}`);
+    console.log(`📊 Generating FILTERED monthly report for ${targetYear}-${targetMonth.toString().padStart(2, '0')}`);
+    console.log(`🔍 Filters: barangay=${barangay || 'all'}, occupancy=${occupancy || 'all'}, cause=${cause || 'all'}, alarm=${alarm || 'all'}`);
 
     // Date range for the report month
     const startDate = new Date(targetYear, targetMonth - 1, 1);
     const endDate = new Date(targetYear, targetMonth - 1 + 1, 0);
     
     console.log(`📅 Fixed date range: ${startDate.toISOString()} to ${endDate.toISOString()}`);
+    
+    // Build WHERE clause with filters
+    const params = [startDate, endDate];
+    let whereConditions = ['resolved_at >= $1 AND resolved_at <= $2'];
+    let paramIndex = 3;
+    
+    if (barangay) {
+      whereConditions.push(`barangay = $${paramIndex}`);
+      params.push(barangay);
+      paramIndex++;
+    }
+    
+    if (occupancy) {
+      whereConditions.push(`type_of_occupancy = $${paramIndex}`);
+      params.push(occupancy);
+      paramIndex++;
+    }
+    
+    if (cause) {
+      whereConditions.push(`cause = $${paramIndex}`);
+      params.push(cause);
+      paramIndex++;
+    }
+    
+    if (alarm) {
+      whereConditions.push(`alarm_level ILIKE $${paramIndex}`);
+      params.push(`%${alarm}%`);
+      paramIndex++;
+    }
+    
+    const whereClause = whereConditions.join(' AND ');
     
     // 1. Basic incident count and real totals from BFP data
     const summaryQuery = `
@@ -1343,10 +1375,10 @@ app.get('/api/admin/generate-monthly-report-simple-fix', async (req, res) => {
           ELSE 0 
         END), 0) as total_injuries
       FROM historical_fires 
-      WHERE resolved_at >= $1 AND resolved_at <= $2
+      WHERE ${whereClause}
     `;
     
-    const summaryResult = await db.query(summaryQuery, [startDate, endDate]);
+    const summaryResult = await db.query(summaryQuery, params);
     const totalIncidents = parseInt(summaryResult.rows[0].total_incidents) || 0;
     const avgAlarmLevel = summaryResult.rows[0].avg_alarm_level ? 
       Math.round(parseFloat(summaryResult.rows[0].avg_alarm_level) * 10) / 10 : null;
@@ -1365,9 +1397,9 @@ app.get('/api/admin/generate-monthly-report-simple-fix', async (req, res) => {
           COALESCE(SUM(CASE WHEN casualties IS NOT NULL AND casualties > 0 THEN casualties ELSE 0 END), 0) as casualties,
           COALESCE(SUM(CASE WHEN injuries IS NOT NULL AND injuries > 0 THEN injuries ELSE 0 END), 0) as injuries
          FROM historical_fires 
-         WHERE resolved_at >= $1 AND resolved_at <= $2 AND barangay IS NOT NULL AND barangay != ''
+         WHERE ${whereClause} AND barangay IS NOT NULL AND barangay != ''
          GROUP BY barangay ORDER BY incident_count DESC LIMIT 10`,
-        [startDate, endDate]
+        params
       );
       barangays = barangayResult.rows;
     }
@@ -1379,19 +1411,19 @@ app.get('/api/admin/generate-monthly-report-simple-fix', async (req, res) => {
       const detailsResult = await db.query(
         `SELECT id, barangay, address, alarm_level, reported_at, reported_by
          FROM historical_fires 
-         WHERE resolved_at >= $1 AND resolved_at <= $2
+         WHERE ${whereClause}
          ORDER BY resolved_at DESC LIMIT 5`,
-        [startDate, endDate]
+        params
       );
       incidentDetails = detailsResult.rows;
       
       // Get ALL incidents for the comprehensive table
       const allIncidentsResult = await db.query(
-        `SELECT id, barangay, address, alarm_level, reported_at, cause, estimated_damage
+        `SELECT id, barangay, address, alarm_level, reported_at, cause, estimated_damage, type_of_occupancy
          FROM historical_fires 
-         WHERE resolved_at >= $1 AND resolved_at <= $2
+         WHERE ${whereClause}
          ORDER BY resolved_at ASC`,
-        [startDate, endDate]
+        params
       );
       allIncidents = allIncidentsResult.rows;
     }
