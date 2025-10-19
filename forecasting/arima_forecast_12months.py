@@ -96,8 +96,10 @@ def forecast_barangay_fires_12months(historical_data, start_year, start_month):
     results = []
     
     for barangay, g in df.groupby('barangay'):
-        # Prepare time series
-        s = g.sort_values('DATE_TS').set_index('DATE_TS')['incident_count'].astype(float)
+        # Prepare time series - aggregate duplicates by summing incidents
+        g = g.sort_values('DATE_TS')
+        # Group by date and sum incident counts (handles duplicates)
+        s = g.groupby('DATE_TS')['incident_count'].sum().astype(float)
         full_index = pd.date_range(start=s.index.min(), end=s.index.max(), freq='MS')
         s = s.reindex(full_index, fill_value=0).astype(float)
         s.index.freq = 'MS'
@@ -182,11 +184,12 @@ def forecast_barangay_fires_12months(historical_data, start_year, start_month):
                 # ===================================================
                 # PHASE 2: Test SARIMAX seasonal models (matching Colab)
                 # Compare against ARIMA(1,0,1) baseline
+                # Prioritize models without differencing (d=0) to preserve seasonality
                 # ===================================================
                 sarimax_orders = [
-                    ((1,0,1), (1,0,1,12)),
-                    ((1,1,1), (1,0,1,12)),
-                    ((2,0,1), (0,1,1,12))
+                    ((2,0,1), (0,1,1,12)),  # Best for seasonality - try first
+                    ((1,0,1), (1,0,1,12)),  # No differencing
+                    ((1,1,1), (1,0,1,12))   # With differencing - last resort
                 ]
                 
                 best_sarimax_aic = np.inf
@@ -197,10 +200,33 @@ def forecast_barangay_fires_12months(historical_data, start_year, start_month):
                         model = SARIMAX(y, order=order, seasonal_order=seasonal,
                                       enforce_stationarity=False,
                                       enforce_invertibility=False)
-                        fit = model.fit(disp=False)
-                        if fit.aic < best_sarimax_aic:
-                            best_sarimax_aic = fit.aic
-                            best_sarimax_fit = fit
+                        # Use better optimization settings for convergence
+                        fit = model.fit(disp=False, maxiter=200, method='lbfgs')
+                        
+                        # Only accept converged models
+                        converged = True
+                        if hasattr(fit, 'mle_retvals') and fit.mle_retvals:
+                            converged = fit.mle_retvals.get('converged', True)
+                        
+                        if converged or not hasattr(fit, 'mle_retvals'):
+                            # Prefer models with lower differencing (d) to preserve seasonality
+                            # If AICs are within 2 units, choose the one with lower d
+                            if best_sarimax_fit is None:
+                                best_sarimax_aic = fit.aic
+                                best_sarimax_fit = fit
+                            else:
+                                current_d = order[1]
+                                best_d = best_sarimax_fit.specification['order'][1]
+                                aic_diff = abs(fit.aic - best_sarimax_aic)
+                                
+                                # If AICs are close (within 2), prefer lower d (better seasonality)
+                                if aic_diff <= 2 and current_d < best_d:
+                                    best_sarimax_aic = fit.aic
+                                    best_sarimax_fit = fit
+                                # Otherwise, use standard AIC comparison
+                                elif fit.aic < best_sarimax_aic:
+                                    best_sarimax_aic = fit.aic
+                                    best_sarimax_fit = fit
                     except Exception:
                         continue
                 

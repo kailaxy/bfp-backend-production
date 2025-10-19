@@ -1,0 +1,116 @@
+{
+  "historical_data": [
+    {
+      "barangay": "Addition Hills",
+      "date": "2023-01",
+      "incident_count": 2
+    },
+    {
+      "barangay": "Addition Hills",
+      "date": "2023-02",
+      "incident_count": 1
+    },
+    {
+      "barangay": "Addition Hills",
+      "date": "2023-03",
+      "incident_count": 3
+    },
+    {
+      "barangay": "Addition Hills",
+      "date": "2023-04",
+      "incident_count": 2
+    },
+    {
+      "barangay": "Addition Hills",
+      "date": "2023-05",
+      "incident_count": 1
+    },
+    {
+      "barangay": "Addition Hills",
+      "date": "2023-06",
+      "incident_count": 2
+    },
+    {
+      "barangay": "Addition Hills",
+      "date": "2023-07",
+      "incident_count": 3
+    },
+    {
+      "barangay": "Addition Hills",
+      "date": "2023-08",
+      "incident_count": 1
+    },
+    {
+      "barangay": "Addition Hills",
+      "date": "2023-09",
+      "incident_count": 2
+    },
+    {
+      "barangay": "Addition Hills",
+      "date": "2023-10",
+      "incident_count": 4
+    },
+    {
+      "barangay": "Addition Hills",
+      "date": "2023-11",
+      "incident_count": 2
+    },
+    {
+      "barangay": "Addition Hills",
+      "date": "2023-12",
+      "incident_count": 3
+    },
+    {
+      "barangay": "Addition Hills",
+      "date": "2024-01",
+      "incident_count": 2
+    },
+    {
+      "barangay": "Addition Hills",
+      "date": "2024-02",
+      "incident_count": 1
+    },
+    {
+      "barangay": "Addition Hills",
+      "date": "2024-03",
+      "incident_count": 3
+    },
+    {
+      "barangay": "Addition Hills",
+      "date": "2024-04",
+      "incident_count": 2
+    },
+    {
+      "barangay": "Addition Hills",
+      "date": "2024-05",
+      "incident_count": 1
+    },
+    {
+      "barangay": "Addition Hills",
+      "date": "2024-06",
+      "incident_count": 2
+    },
+    {
+      "barangay": "Addition Hills",
+      "date": "2024-07",
+      "incident_count": 3
+    },
+    {
+      "barangay": "Addition Hills",
+      "date": "2024-08",
+      "incident_count": 1
+    },
+    {
+      "barangay": "Addition Hills",
+      "date": "2024-09",
+      "incident_count": 2
+    },
+    {
+      "barangay": "Addition Hills",
+      "date": "2024-10",
+      "incident_count": 2
+    }
+  ],
+  "start_year": 2025,
+  "start_month": 10
+}
