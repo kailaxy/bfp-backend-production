@@ -1299,23 +1299,49 @@ app.get('/api/admin/generate-monthly-report-simple-fix', async (req, res) => {
   try {
     const db = require('./config/db');
     const { month, year, barangay, occupancy, cause, alarm } = req.query;
-    const currentDate = new Date();
-    const targetMonth = month ? parseInt(month) : currentDate.getMonth() + 1;
-    const targetYear = year ? parseInt(year) : currentDate.getFullYear();
-    
-    console.log(`📊 Generating FILTERED monthly report for ${targetYear}-${targetMonth.toString().padStart(2, '0')}`);
-    console.log(`🔍 Filters: barangay=${barangay || 'all'}, occupancy=${occupancy || 'all'}, cause=${cause || 'all'}, alarm=${alarm || 'all'}`);
-
-    // Date range for the report month
-    const startDate = new Date(targetYear, targetMonth - 1, 1);
-    const endDate = new Date(targetYear, targetMonth - 1 + 1, 0);
-    
-    console.log(`📅 Fixed date range: ${startDate.toISOString()} to ${endDate.toISOString()}`);
     
     // Build WHERE clause with filters
-    const params = [startDate, endDate];
-    let whereConditions = ['resolved_at >= $1 AND resolved_at <= $2'];
-    let paramIndex = 3;
+    const params = [];
+    let whereConditions = [];
+    let paramIndex = 1;
+    
+    // Date filtering - only if month or year is specified
+    let startDate = null;
+    let endDate = null;
+    let dateRangeLabel = 'All Time';
+    
+    if (month && year) {
+      // Both month and year specified
+      const targetMonth = parseInt(month);
+      const targetYear = parseInt(year);
+      startDate = new Date(targetYear, targetMonth - 1, 1);
+      endDate = new Date(targetYear, targetMonth, 0);
+      whereConditions.push(`resolved_at >= $${paramIndex} AND resolved_at <= $${paramIndex + 1}`);
+      params.push(startDate, endDate);
+      paramIndex += 2;
+      dateRangeLabel = `${new Date(targetYear, targetMonth - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`;
+    } else if (year) {
+      // Only year specified
+      const targetYear = parseInt(year);
+      startDate = new Date(targetYear, 0, 1);
+      endDate = new Date(targetYear, 11, 31);
+      whereConditions.push(`resolved_at >= $${paramIndex} AND resolved_at <= $${paramIndex + 1}`);
+      params.push(startDate, endDate);
+      paramIndex += 2;
+      dateRangeLabel = `${targetYear}`;
+    } else if (month) {
+      // Only month specified (across all years)
+      const targetMonth = parseInt(month);
+      whereConditions.push(`EXTRACT(MONTH FROM resolved_at) = $${paramIndex}`);
+      params.push(targetMonth);
+      paramIndex += 1;
+      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'];
+      dateRangeLabel = `${monthNames[targetMonth - 1]} (All Years)`;
+    }
+    
+    console.log(`📊 Generating FILTERED report for: ${dateRangeLabel}`);
+    console.log(`🔍 Filters: barangay=${barangay || 'all'}, occupancy=${occupancy || 'all'}, cause=${cause || 'all'}, alarm=${alarm || 'all'}`);
     
     if (barangay) {
       whereConditions.push(`barangay = $${paramIndex}`);
@@ -1341,7 +1367,7 @@ app.get('/api/admin/generate-monthly-report-simple-fix', async (req, res) => {
       paramIndex++;
     }
     
-    const whereClause = whereConditions.join(' AND ');
+    const whereClause = whereConditions.length > 0 ? 'WHERE ' + whereConditions.join(' AND ') : '';
     
     // 1. Basic incident count and real totals from BFP data
     const summaryQuery = `
@@ -1375,7 +1401,7 @@ app.get('/api/admin/generate-monthly-report-simple-fix', async (req, res) => {
           ELSE 0 
         END), 0) as total_injuries
       FROM historical_fires 
-      WHERE ${whereClause}
+      ${whereClause}
     `;
     
     const summaryResult = await db.query(summaryQuery, params);
@@ -1397,7 +1423,7 @@ app.get('/api/admin/generate-monthly-report-simple-fix', async (req, res) => {
           COALESCE(SUM(CASE WHEN casualties IS NOT NULL AND casualties > 0 THEN casualties ELSE 0 END), 0) as casualties,
           COALESCE(SUM(CASE WHEN injuries IS NOT NULL AND injuries > 0 THEN injuries ELSE 0 END), 0) as injuries
          FROM historical_fires 
-         WHERE ${whereClause} AND barangay IS NOT NULL AND barangay != ''
+         ${whereClause ? whereClause + ' AND' : 'WHERE'} barangay IS NOT NULL AND barangay != ''
          GROUP BY barangay ORDER BY incident_count DESC LIMIT 10`,
         params
       );
@@ -1411,7 +1437,7 @@ app.get('/api/admin/generate-monthly-report-simple-fix', async (req, res) => {
       const detailsResult = await db.query(
         `SELECT id, barangay, address, alarm_level, reported_at, reported_by
          FROM historical_fires 
-         WHERE ${whereClause}
+         ${whereClause}
          ORDER BY resolved_at DESC LIMIT 5`,
         params
       );
@@ -1421,19 +1447,16 @@ app.get('/api/admin/generate-monthly-report-simple-fix', async (req, res) => {
       const allIncidentsResult = await db.query(
         `SELECT id, barangay, address, alarm_level, reported_at, cause, estimated_damage, type_of_occupancy
          FROM historical_fires 
-         WHERE ${whereClause}
+         ${whereClause}
          ORDER BY resolved_at ASC`,
         params
       );
       allIncidents = allIncidentsResult.rows;
     }
     
-    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'];
-    
     const report = {
       report_info: {
-        month_covered: `${monthNames[targetMonth - 1]} ${targetYear}`,
+        month_covered: dateRangeLabel,
         report_generated: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
         prepared_by: 'Fire Data Management System (BFP-Mandaluyong IT Unit)',
         data_note: 'Historical BFP data - Some fields marked N/A or --- are incomplete in original records'
