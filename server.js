@@ -1539,6 +1539,115 @@ app.get('/api/admin/generate-monthly-report-simple-fix', async (req, res) => {
   }
 });
 
+// ─────────────────────────────────────────────────────────────────────
+// HISTORICAL FIRES API ENDPOINT (with filters)
+// ─────────────────────────────────────────────────────────────────────
+app.get('/api/historical-fires', async (req, res) => {
+  try {
+    const db = require('./config/db');
+    const { month, year, barangay, occupancy, cause, alarm } = req.query;
+    
+    // Build WHERE clause with filters
+    const params = [];
+    let whereConditions = [];
+    let paramIndex = 1;
+    
+    // Date filtering
+    if (month && year) {
+      const targetMonth = parseInt(month);
+      const targetYear = parseInt(year);
+      const startDate = new Date(targetYear, targetMonth - 1, 1);
+      const endDate = new Date(targetYear, targetMonth, 0);
+      whereConditions.push(`resolved_at >= $${paramIndex} AND resolved_at <= $${paramIndex + 1}`);
+      params.push(startDate, endDate);
+      paramIndex += 2;
+    } else if (year) {
+      const targetYear = parseInt(year);
+      const startDate = new Date(targetYear, 0, 1);
+      const endDate = new Date(targetYear, 11, 31);
+      whereConditions.push(`resolved_at >= $${paramIndex} AND resolved_at <= $${paramIndex + 1}`);
+      params.push(startDate, endDate);
+      paramIndex += 2;
+    } else if (month) {
+      const targetMonth = parseInt(month);
+      whereConditions.push(`EXTRACT(MONTH FROM resolved_at) = $${paramIndex}`);
+      params.push(targetMonth);
+      paramIndex += 1;
+    }
+    
+    if (barangay) {
+      whereConditions.push(`barangay = $${paramIndex}`);
+      params.push(barangay);
+      paramIndex++;
+    }
+    
+    if (occupancy) {
+      whereConditions.push(`type_of_occupancy = $${paramIndex}`);
+      params.push(occupancy);
+      paramIndex++;
+    }
+    
+    if (cause) {
+      whereConditions.push(`cause ILIKE $${paramIndex}`);
+      params.push(`%${cause}%`);
+      paramIndex++;
+    }
+    
+    if (alarm) {
+      // Special handling for "Fire Out Upon Arrival" variations
+      if (alarm.toLowerCase().includes('fire out')) {
+        whereConditions.push(`(alarm_level ILIKE '%FOUA%' OR alarm_level ILIKE '%Fire Out%')`);
+      } else if (alarm.toLowerCase().includes('unresponded')) {
+        whereConditions.push(`alarm_level ILIKE '%unresponded%'`);
+      } else {
+        whereConditions.push(`alarm_level ILIKE $${paramIndex}`);
+        params.push(`%${alarm}%`);
+        paramIndex++;
+      }
+    }
+    
+    const whereClause = whereConditions.length > 0 ? 'WHERE ' + whereConditions.join(' AND ') : '';
+    
+    const query = `
+      SELECT 
+        id,
+        lat,
+        lng,
+        barangay,
+        address,
+        alarm_level,
+        reported_at,
+        resolved_at,
+        casualties,
+        injuries,
+        estimated_damage,
+        cause,
+        type_of_occupancy,
+        actions_taken,
+        reported_by,
+        verified_by
+      FROM historical_fires 
+      ${whereClause}
+      ORDER BY resolved_at DESC
+      LIMIT 1000
+    `;
+    
+    const result = await db.query(query, params);
+    
+    res.json({
+      fires: result.rows,
+      count: result.rows.length,
+      filters: { month, year, barangay, occupancy, cause, alarm }
+    });
+    
+  } catch (error) {
+    console.error('❌ Historical fires fetch error:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch historical fires: ' + error.message
+    });
+  }
+});
+
 // Global error handler: ensure JSON responses for unexpected errors
 app.use((err, req, res, next) => {
   try {
