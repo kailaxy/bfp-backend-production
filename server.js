@@ -1362,9 +1362,17 @@ app.get('/api/admin/generate-monthly-report-simple-fix', async (req, res) => {
     }
     
     if (alarm) {
-      whereConditions.push(`alarm_level ILIKE $${paramIndex}`);
-      params.push(`%${alarm}%`);
-      paramIndex++;
+      // Special handling for "Fire Out Upon Arrival" variations (FOUA, Fire Out, etc.)
+      if (alarm.toLowerCase().includes('fire out')) {
+        whereConditions.push(`(alarm_level ILIKE '%FOUA%' OR alarm_level ILIKE '%Fire Out%')`);
+      } else if (alarm.toLowerCase().includes('unresponded')) {
+        whereConditions.push(`alarm_level ILIKE '%unresponded%'`);
+      } else {
+        // Standard alarm levels (1st-5th, Task Force, General Alarm)
+        whereConditions.push(`alarm_level ILIKE $${paramIndex}`);
+        params.push(`%${alarm}%`);
+        paramIndex++;
+      }
     }
     
     const whereClause = whereConditions.length > 0 ? 'WHERE ' + whereConditions.join(' AND ') : '';
