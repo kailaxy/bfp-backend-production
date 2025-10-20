@@ -1,0 +1,60 @@
+# Node modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+*.egg-info/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Test files
+*.test.js
+*.spec.js
+
+# Archives
+archive/
+temp/
+*.zip
+*.tar.gz
+
+# Documentation
+*.md
+!README.md
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# PowerShell scripts (diagnostic only)
+*.ps1
+
+# Large data files
+*.csv
+!historical_csv.csv
+*.json
+!package.json
+!package-lock.json
+
+# Logs
+logs/
+*.log

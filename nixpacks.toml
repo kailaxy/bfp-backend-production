@@ -4,7 +4,10 @@ nixPkgs = ["nodejs_20", "python311", "python311Packages.pip", "python311Packages
 nixLibs = ["zlib", "stdenv.cc.cc.lib"]
 
 [phases.install]
-cmds = ["npm ci"]
+cmds = ["npm ci --prefer-offline --no-audit"]
+
+[phases.build]
+cmds = ["echo 'Skipping npm install in build phase'"]
 
 [phases.postInstall]
 cmds = [
@@ -17,7 +20,7 @@ cmds = [
   "python3 -m venv --clear --system-site-packages /opt/venv",
   
   # Install packages in one command to reduce layers
-  "/opt/venv/bin/pip install --upgrade pip setuptools wheel && /opt/venv/bin/pip install --no-cache-dir --no-build-isolation numpy==1.26.4 pandas==2.2.0 scipy==1.12.0 statsmodels==0.14.1 scikit-learn",
+  "/opt/venv/bin/pip install --upgrade pip setuptools wheel && /opt/venv/bin/pip install --no-cache-dir --no-build-isolation numpy==1.26.4 pandas==2.2.0 scipy==1.12.0 statsmodels==0.14.1",
   
   # Quick verification
   "/opt/venv/bin/python3 -c 'import numpy, pandas; print(f\"Packages ready: numpy {numpy.__version__}, pandas {pandas.__version__}\")'",
