@@ -1356,8 +1356,8 @@ app.get('/api/admin/generate-monthly-report-simple-fix', async (req, res) => {
     }
     
     if (cause) {
-      whereConditions.push(`cause = $${paramIndex}`);
-      params.push(cause);
+      whereConditions.push(`cause ILIKE $${paramIndex}`);
+      params.push(`%${cause}%`);
       paramIndex++;
     }
     
