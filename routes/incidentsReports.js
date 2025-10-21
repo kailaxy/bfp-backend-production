@@ -78,6 +78,125 @@ router.post('/', async (req, res) => {
   }
 });
 
+// PUT /api/incidentsReports/:id - update a historical fire record
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      address,
+      barangay,
+      alarm_level,
+      lat,
+      lng,
+      reported_at,
+      resolved_at,
+      duration_minutes,
+      casualties,
+      injuries,
+      estimated_damage,
+      cause,
+      actions_taken,
+      reported_by,
+      verified_by,
+      attachments
+    } = req.body;
+
+    // Build dynamic UPDATE query based on provided fields
+    const updates = [];
+    const params = [];
+    let paramIndex = 1;
+
+    if (address !== undefined) {
+      updates.push(`address = $${paramIndex++}`);
+      params.push(address);
+    }
+    if (barangay !== undefined) {
+      updates.push(`barangay = $${paramIndex++}`);
+      params.push(barangay);
+    }
+    if (alarm_level !== undefined) {
+      updates.push(`alarm_level = $${paramIndex++}`);
+      params.push(alarm_level);
+    }
+    if (lat !== undefined) {
+      updates.push(`lat = $${paramIndex++}`);
+      params.push(lat);
+    }
+    if (lng !== undefined) {
+      updates.push(`lng = $${paramIndex++}`);
+      params.push(lng);
+    }
+    if (reported_at !== undefined) {
+      updates.push(`reported_at = $${paramIndex++}`);
+      params.push(reported_at);
+    }
+    if (resolved_at !== undefined) {
+      updates.push(`resolved_at = $${paramIndex++}`);
+      params.push(resolved_at);
+    }
+    if (duration_minutes !== undefined) {
+      updates.push(`duration_minutes = $${paramIndex++}`);
+      params.push(duration_minutes);
+    }
+    if (casualties !== undefined) {
+      updates.push(`casualties = $${paramIndex++}`);
+      params.push(casualties);
+    }
+    if (injuries !== undefined) {
+      updates.push(`injuries = $${paramIndex++}`);
+      params.push(injuries);
+    }
+    if (estimated_damage !== undefined) {
+      updates.push(`estimated_damage = $${paramIndex++}`);
+      params.push(estimated_damage);
+    }
+    if (cause !== undefined) {
+      updates.push(`cause = $${paramIndex++}`);
+      params.push(cause);
+    }
+    if (actions_taken !== undefined) {
+      updates.push(`actions_taken = $${paramIndex++}`);
+      params.push(actions_taken);
+    }
+    if (reported_by !== undefined) {
+      updates.push(`reported_by = $${paramIndex++}`);
+      params.push(reported_by);
+    }
+    if (verified_by !== undefined) {
+      updates.push(`verified_by = $${paramIndex++}`);
+      params.push(verified_by);
+    }
+    if (attachments !== undefined) {
+      updates.push(`attachments = $${paramIndex++}`);
+      params.push(attachments);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    params.push(id);
+    const updateSQL = `
+      UPDATE historical_fires
+      SET ${updates.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING *
+    `;
+
+    const result = await db.query(updateSQL, params);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Record not found' });
+    }
+
+    console.log(`✏️  Updated historical fire record (ID: ${id})`);
+    res.json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    console.error('Error updating historical fire:', err);
+    res.status(500).json({ error: 'Failed to update record' });
+  }
+});
+
 // DELETE /api/incidentsReports/:id - delete a historical fire record
 router.delete('/:id', async (req, res) => {
   try {
