@@ -160,5 +160,26 @@ router.patch('/:id', authenticateJWT, requireAdmin, async (req, res) => {
   }
 });
 
+// DELETE /api/hydrants/:id - delete a hydrant
+router.delete('/:id', authenticateJWT, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      'DELETE FROM hydrants WHERE id = $1 RETURNING id, address',
+      [id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Hydrant not found' });
+    }
+    
+    console.log(`✅ Hydrant deleted (ID: ${id}) - ${result.rows[0].address}`);
+    res.json({ message: 'Hydrant deleted successfully', hydrant: result.rows[0] });
+  } catch (err) {
+    console.error('Error deleting hydrant:', err);
+    res.status(500).json({ error: 'Failed to delete hydrant' });
+  }
+});
+
 module.exports = router;
  

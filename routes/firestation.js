@@ -188,3 +188,24 @@ router.patch('/:id', authenticateJWT, requireAdmin, async (req, res) => {
     return res.status(500).json({ error: err.message || 'Failed to update station', stack: err.stack });
   }
 });
+
+// DELETE /api/firestation/:id - delete a fire station
+router.delete('/:id', authenticateJWT, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      'DELETE FROM mandaluyong_fire_stations WHERE id = $1 RETURNING id, name',
+      [id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Fire station not found' });
+    }
+    
+    console.log(`✅ Fire station deleted (ID: ${id}) - ${result.rows[0].name}`);
+    res.json({ message: 'Fire station deleted successfully', station: result.rows[0] });
+  } catch (err) {
+    console.error('Error deleting fire station:', err);
+    res.status(500).json({ error: 'Failed to delete fire station' });
+  }
+});
