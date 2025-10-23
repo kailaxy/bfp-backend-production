@@ -122,6 +122,44 @@ router.get('/admin', authenticateJWT, requireAdmin, async (req, res) => {
   }
 });
 
+// POST /api/firestation - create new fire station
+router.post('/', authenticateJWT, requireAdmin, async (req, res) => {
+  const { name, operator, address, contact_phone, latitude, longitude } = req.body;
+  
+  try {
+    // Validate required fields
+    if (!name) return res.status(400).json({ error: 'Name is required' });
+    if (latitude === undefined || longitude === undefined) return res.status(400).json({ error: 'Latitude and longitude are required' });
+    if (!isFloatLike(latitude) || !isFloatLike(longitude)) return res.status(400).json({ error: 'Latitude and longitude must be numbers' });
+    
+    // Insert new fire station
+    const sql = `
+      INSERT INTO mandaluyong_fire_stations (name, operator, address, contact_phone, geom)
+      VALUES ($1, $2, $3, $4, ST_SetSRID(ST_MakePoint($5, $6), 4326))
+      RETURNING id, name, operator, address, contact_phone,
+                ST_Y(ST_Centroid(geom))::float AS latitude,
+                ST_X(ST_Centroid(geom))::float AS longitude
+    `;
+    
+    const params = [
+      name,
+      operator || null,
+      address || null,
+      contact_phone || null,
+      Number(longitude),
+      Number(latitude)
+    ];
+    
+    const result = await pool.query(sql, params);
+    
+    console.log(`✅ New fire station created (ID: ${result.rows[0].id}) - ${name}`);
+    res.status(201).json({ station: result.rows[0] });
+  } catch (err) {
+    console.error('Error creating fire station:', err);
+    res.status(500).json({ error: 'Failed to create fire station' });
+  }
+});
+
 router.patch('/:id', authenticateJWT, requireAdmin, async (req, res) => {
   const { id } = req.params;
   const { name, operator, address, contact_phone, latitude, longitude } = req.body;
