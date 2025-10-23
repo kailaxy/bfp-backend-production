@@ -68,7 +68,9 @@ router.get('/', async (req, res) => {
         operator,
         address,
         contact_phone,
-        ST_AsGeoJSON(geom)::json AS geometry
+        ST_AsGeoJSON(geom)::json AS geometry,
+        ST_Y(ST_Centroid(geom))::float AS latitude,
+        ST_X(ST_Centroid(geom))::float AS longitude
       FROM mandaluyong_fire_stations
       WHERE geom IS NOT NULL
     `);
@@ -82,6 +84,8 @@ router.get('/', async (req, res) => {
         operator: row.operator,
         address: row.address,
         contact_phone: row.contact_phone,
+        latitude: row.latitude,
+        longitude: row.longitude,
       },
     }));
 
