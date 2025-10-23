@@ -34,18 +34,29 @@ class EnhancedForecastService {
   /**
    * Fetch historical fire data from database
    * Groups by barangay and month
+   * Normalizes barangay names to match official naming (with "ng")
    */
   async fetchHistoricalData() {
     const query = `
       SELECT 
-        barangay,
+        CASE 
+          WHEN barangay ILIKE 'Hagdan Bato Itaas' THEN 'Hagdang Bato Itaas'
+          WHEN barangay ILIKE 'Hagdan Bato Libis' THEN 'Hagdang Bato Libis'
+          ELSE barangay
+        END as barangay,
         TO_CHAR(resolved_at, 'YYYY-MM') as date,
         COUNT(*) as incident_count
       FROM historical_fires
       WHERE barangay IS NOT NULL 
         AND barangay != ''
         AND resolved_at IS NOT NULL
-      GROUP BY barangay, TO_CHAR(resolved_at, 'YYYY-MM')
+      GROUP BY 
+        CASE 
+          WHEN barangay ILIKE 'Hagdan Bato Itaas' THEN 'Hagdang Bato Itaas'
+          WHEN barangay ILIKE 'Hagdan Bato Libis' THEN 'Hagdang Bato Libis'
+          ELSE barangay
+        END,
+        TO_CHAR(resolved_at, 'YYYY-MM')
       ORDER BY barangay, date
     `;
 

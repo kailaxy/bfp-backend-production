@@ -19,20 +19,31 @@ class ForecastingService {
 
   /**
    * Fetch historical fire incident data from database
+   * Normalizes barangay names to match official naming (with "ng")
    * @param {number} years - Number of years back to fetch data
    * @returns {Array} Historical data in format expected by Python script
    */
   async fetchHistoricalData(years = 15) {
     const query = `
       SELECT 
-        barangay,
+        CASE 
+          WHEN barangay ILIKE 'Hagdan Bato Itaas' THEN 'Hagdang Bato Itaas'
+          WHEN barangay ILIKE 'Hagdan Bato Libis' THEN 'Hagdang Bato Libis'
+          ELSE barangay
+        END as barangay,
         DATE_TRUNC('month', resolved_at) as month_date,
         COUNT(*) as incident_count
       FROM historical_fires 
       WHERE resolved_at >= NOW() - INTERVAL '${years} years'
         AND barangay IS NOT NULL
         AND resolved_at IS NOT NULL
-      GROUP BY barangay, DATE_TRUNC('month', resolved_at)
+      GROUP BY 
+        CASE 
+          WHEN barangay ILIKE 'Hagdan Bato Itaas' THEN 'Hagdang Bato Itaas'
+          WHEN barangay ILIKE 'Hagdan Bato Libis' THEN 'Hagdang Bato Libis'
+          ELSE barangay
+        END,
+        DATE_TRUNC('month', resolved_at)
       ORDER BY barangay, month_date
     `;
 
