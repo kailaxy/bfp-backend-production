@@ -33,9 +33,11 @@ BARANGAY_MODELS = {
 }
 
 # Normalization variants for name matching
+# NOTE: Canonical spelling is "Hagdang Bato" (with 'g'), not "Hagdan Bato"
+# These aliases handle legacy data that may use alternative spellings
 BARANGAY_NAME_ALIASES = {
-    "Hagdang Bato Itaas": ["Hagdan Bato Itaas"],
-    "Hagdang Bato Libis": ["Hagdan Bato Libis"],
+    "Hagdang Bato Itaas": ["Hagdan Bato Itaas"],  # Legacy spelling without 'g'
+    "Hagdang Bato Libis": ["Hagdan Bato Libis"],  # Legacy spelling without 'g'
     "New Zañiga": ["New Zaniga"],
     "Old Zañiga": ["Old Zaniga"],
     "Wack-Wack Greenhills": ["Wack-wack Greenhills"],
