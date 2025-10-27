@@ -68,6 +68,7 @@ class LocalForecastGenerator {
         WHERE barangay IS NOT NULL 
           AND barangay != ''
           AND resolved_at IS NOT NULL
+          AND alarm_level != 'False Alarm'
         GROUP BY barangay, TO_CHAR(resolved_at, 'YYYY-MM')
         ORDER BY barangay, date
       `;

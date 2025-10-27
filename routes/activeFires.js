@@ -334,4 +334,76 @@ router.post('/:id/resolve', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/active_fires/:id/false-alarm
+ * Mark an active fire as a false alarm and move to historical_fires
+ */
+router.post('/:id/false-alarm', async (req, res) => {
+  const { id } = req.params;
+  console.log('POST /api/active_fires/:id/false-alarm', id);
+
+  const {
+    verified_by,
+    actions_taken
+  } = req.body;
+
+  try {
+    // 1) Load the active fire record
+    const { rows } = await pool.query(
+      `SELECT id, lat, lng, barangay, address, reported_at, reported_by
+       FROM active_fires
+       WHERE id = $1`,
+      [id]
+    );
+    if (!rows.length) {
+      return res.status(404).json({ error: 'Active fire not found' });
+    }
+    const fire = rows[0];
+
+    // 2) Insert into historical_fires with alarm_level = 'False Alarm'
+    await pool.query(
+      `INSERT INTO historical_fires
+         (id, lat, lng, barangay, address, alarm_level, reported_at,
+          resolved_at, casualties, injuries, estimated_damage,
+          cause, type_of_occupancy, actions_taken, 
+          reported_by, verified_by, attachments)
+       VALUES
+         ($1, $2, $3, $4, $5, $6, $7,
+          NOW(), $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
+      [
+        fire.id,
+        fire.lat,
+        fire.lng,
+        fire.barangay,
+        fire.address,
+        'False Alarm', // Set alarm_level to 'False Alarm'
+        fire.reported_at,
+        // resolution details - all null for false alarms
+        null, // casualties
+        null, // injuries
+        null, // estimated_damage
+        'False Alarm', // cause
+        null, // type_of_occupancy
+        actions_taken || 'Marked as false alarm', // actions_taken
+        fire.reported_by,
+        verified_by || null,
+        [] // empty attachments array
+      ]
+    );
+
+    // 3) Delete from active_fires
+    await pool.query(`DELETE FROM active_fires WHERE id = $1`, [id]);
+
+    // Note: We do NOT trigger forecast generation for false alarms
+    // since they will be excluded from the aggregation queries
+
+    return res.json({ 
+      message: 'Fire marked as false alarm and archived.'
+    });
+  } catch (err) {
+    console.error('Error marking fire as false alarm:', err);
+    return res.status(500).json({ error: 'Failed to mark as false alarm' });
+  }
+});
+
 module.exports = router;
