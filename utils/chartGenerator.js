@@ -48,7 +48,8 @@ async function generateBarangayBarChart(barangayData) {
           font: {
             size: 18,
             weight: 'bold'
-          }
+          },
+          color: '#000000'
         },
         legend: {
           display: false
@@ -58,22 +59,26 @@ async function generateBarangayBarChart(barangayData) {
         y: {
           beginAtZero: true,
           ticks: {
-            stepSize: 1
+            stepSize: 1,
+            color: '#000000'
           },
           title: {
             display: true,
-            text: 'Number of Incidents'
+            text: 'Number of Incidents',
+            color: '#000000'
           }
         },
         x: {
           title: {
             display: true,
-            text: 'Barangay'
+            text: 'Barangay',
+            color: '#000000'
           },
           ticks: {
             autoSkip: false,
             maxRotation: 45,
-            minRotation: 45
+            minRotation: 45,
+            color: '#000000'
           }
         }
       }
@@ -143,7 +148,8 @@ async function generateAlarmLevelPieChart(incidents) {
           font: {
             size: 18,
             weight: 'bold'
-          }
+          },
+          color: '#000000'
         },
         legend: {
           position: 'right',
@@ -151,6 +157,8 @@ async function generateAlarmLevelPieChart(incidents) {
             font: {
               size: 12
             },
+            color: '#000000',
+            padding: 10,
             generateLabels: (chart) => {
               const data = chart.data;
               if (data.labels.length && data.datasets.length) {
@@ -161,6 +169,7 @@ async function generateAlarmLevelPieChart(incidents) {
                   return {
                     text: `${label}: ${value} (${percentage}%)`,
                     fillStyle: data.datasets[0].backgroundColor[i],
+                    fontColor: '#000000',
                     hidden: false,
                     index: i
                   };
@@ -230,7 +239,8 @@ async function generateCausesPieChart(causes) {
           font: {
             size: 18,
             weight: 'bold'
-          }
+          },
+          color: '#000000'
         },
         legend: {
           position: 'right',
@@ -238,6 +248,8 @@ async function generateCausesPieChart(causes) {
             font: {
               size: 12
             },
+            color: '#000000',
+            padding: 10,
             generateLabels: (chart) => {
               const data = chart.data;
               if (data.labels.length && data.datasets.length) {
@@ -248,6 +260,7 @@ async function generateCausesPieChart(causes) {
                   return {
                     text: `${label}: ${value} (${percentage}%)`,
                     fillStyle: data.datasets[0].backgroundColor[i],
+                    fontColor: '#000000',
                     hidden: false,
                     index: i
                   };
