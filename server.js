@@ -1528,6 +1528,35 @@ app.get('/api/admin/generate-monthly-report-simple-fix', async (req, res) => {
     };
     
     console.log(`✅ Generated SIMPLE FIXED report for ${report.report_info.month_covered} with ${totalIncidents} incidents`);
+    
+    // Generate charts
+    console.log('📊 Generating charts for report...');
+    const chartGenerator = require('./utils/chartGenerator');
+    
+    try {
+      const [barangayChart, alarmChart, causesChart] = await Promise.all([
+        chartGenerator.generateBarangayBarChart(barangays),
+        chartGenerator.generateAlarmLevelPieChart(allIncidents),
+        chartGenerator.generateCausesPieChart(report.common_causes)
+      ]);
+      
+      report.charts = {
+        barangay_bar_chart: barangayChart,
+        alarm_level_pie_chart: alarmChart,
+        causes_pie_chart: causesChart
+      };
+      
+      console.log('✅ Charts generated successfully');
+    } catch (chartError) {
+      console.error('⚠️ Chart generation failed:', chartError.message);
+      // Don't fail the entire request if charts fail
+      report.charts = {
+        barangay_bar_chart: null,
+        alarm_level_pie_chart: null,
+        causes_pie_chart: null
+      };
+    }
+    
     res.json(report);
     
   } catch (error) {
