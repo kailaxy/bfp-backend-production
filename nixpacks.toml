@@ -1,7 +1,7 @@
 # Railway build configuration - includes system libraries for Python C-extensions and Canvas
 [phases.setup]
-nixPkgs = ["nodejs_20", "python311", "python311Packages.pip", "python311Packages.virtualenv", "zlib", "stdenv.cc.cc.lib", "libuuid", "cairo", "pango", "giflib", "libjpeg", "pixman", "freetype", "fontconfig", "glib"]
-nixLibs = ["zlib", "stdenv.cc.cc.lib", "libuuid", "cairo", "pango", "giflib", "libjpeg", "pixman", "freetype", "fontconfig", "glib"]
+nixPkgs = ["nodejs_20", "python311", "python311Packages.pip", "python311Packages.virtualenv", "zlib", "stdenv.cc.cc.lib", "libuuid", "cairo", "pango", "giflib", "libjpeg", "pixman", "freetype", "fontconfig", "glib", "harfbuzz"]
+nixLibs = ["zlib", "stdenv.cc.cc.lib", "libuuid", "cairo", "pango", "giflib", "libjpeg", "pixman", "freetype", "fontconfig", "glib", "harfbuzz"]
 
 [phases.install]
 cmds = ["npm ci --prefer-offline --no-audit"]
