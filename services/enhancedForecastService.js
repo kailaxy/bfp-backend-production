@@ -554,9 +554,10 @@ class EnhancedForecastService {
 
         // Call microservice for each barangay
         const horizon = forecastMonths;
-        const method = (process.env.FORECAST_METHOD || 'arima').toLowerCase();
-        const window = Math.max(1, Number(process.env.FORECAST_MA_WINDOW || 3));
-        const arimaOrderEnv = (process.env.FORECAST_ARIMA_ORDER || '1,1,1');
+        // Enforce ARIMA to mirror the original Python methodology; no env override
+        const method = 'arima';
+        const window = 3; // unused for ARIMA
+        const arimaOrderEnv = '1,1,1';
         const arima_order = arimaOrderEnv.split(',').map(x => parseInt(x.trim(), 10)).slice(0,3);
 
         const barangays = Array.from(byBarangay.keys());
