@@ -554,8 +554,10 @@ class EnhancedForecastService {
 
         // Call microservice for each barangay
         const horizon = forecastMonths;
-        const method = (process.env.FORECAST_METHOD || 'moving_average').toLowerCase();
+        const method = (process.env.FORECAST_METHOD || 'arima').toLowerCase();
         const window = Math.max(1, Number(process.env.FORECAST_MA_WINDOW || 3));
+        const arimaOrderEnv = (process.env.FORECAST_ARIMA_ORDER || '1,1,1');
+        const arima_order = arimaOrderEnv.split(',').map(x => parseInt(x.trim(), 10)).slice(0,3);
 
         const barangays = Array.from(byBarangay.keys());
         console.log(`   Barangays to forecast: ${barangays.length}`);
@@ -564,8 +566,8 @@ class EnhancedForecastService {
           const series = byBarangay.get(brgy).map(x => x.count);
           if (!series.length) return [];
           try {
-            // Try chosen method first
-            const resp = await getForecast(series, { horizon, method, moving_average_window: window, timeoutMs: 20000 });
+            // Try chosen method first (ARIMA default to match capstone methodology)
+            const resp = await getForecast(series, { horizon, method, moving_average_window: window, arima_order, timeoutMs: 30000 });
             const fc = resp.forecast || [];
             // Map forecasts to year/month tuples starting current month
             const out = [];
@@ -588,34 +590,9 @@ class EnhancedForecastService {
             }
             return out;
           } catch (e) {
-            // Fallback for short series or method errors: try naive
-            console.warn(`   ⚠️ ${brgy}: primary method failed (${e.message}), falling back to naive`);
-            try {
-              const resp2 = await getForecast(series, { horizon, method: 'naive', timeoutMs: 20000 });
-              const fc2 = resp2.forecast || [];
-              const out = [];
-              let y = startYear;
-              let m = startMonth;
-              for (let i = 0; i < fc2.length; i++) {
-                out.push({
-                  barangay_name: brgy,
-                  year: y,
-                  month: m,
-                  predicted_cases: Number(fc2[i]),
-                  lower_bound: Number(fc2[i]),
-                  upper_bound: Number(fc2[i]),
-                  risk_level: 'Unknown',
-                  risk_flag: false,
-                  model_used: resp2.method_used || 'naive'
-                });
-                m += 1;
-                if (m > 12) { m = 1; y += 1; }
-              }
-              return out;
-            } catch (e2) {
-              console.error(`   ❌ Forecast failed for ${brgy} (fallback): ${e2.message}`);
-              return [];
-            }
+            // No fallback: adhere strictly to capstone methodology
+            console.error(`   ❌ Forecast failed for ${brgy}: ${e.message}`);
+            return [];
           }
         });
 
