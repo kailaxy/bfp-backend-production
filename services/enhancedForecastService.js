@@ -11,6 +11,7 @@
 
 const db = require('../config/db');
 const { spawn } = require('child_process');
+const { getForecast } = require('./forecastClient');
 const fs = require('fs').promises;
 const path = require('path');
 
@@ -531,11 +532,108 @@ class EnhancedForecastService {
         throw new Error('No historical data available for forecasting');
       }
 
-      // Step 2: Prepare input file
+      // If external forecast microservice is configured, use it instead of local Python
+      if (process.env.FORECAST_SERVICE_URL) {
+        console.log('\nStep 2/4: Using external Forecast Microservice...');
+        const now = new Date();
+        const startYear = now.getFullYear();
+        const startMonth = now.getMonth() + 1; // 1-12
+
+        // Group historical data by barangay (ascending by date)
+        const byBarangay = new Map();
+        for (const row of historicalData) {
+          const key = row.barangay;
+          if (!byBarangay.has(key)) byBarangay.set(key, []);
+          byBarangay.get(key).push({ date: row.date, count: Number(row.incident_count) || 0 });
+        }
+        for (const [, arr] of byBarangay) {
+          arr.sort((a, b) => a.date.localeCompare(b.date));
+        }
+
+        // Call microservice for each barangay
+        const horizon = forecastMonths;
+        const method = process.env.FORECAST_METHOD || 'moving_average';
+        const window = Number(process.env.FORECAST_MA_WINDOW || 3);
+
+        const barangays = Array.from(byBarangay.keys());
+        console.log(`   Barangays to forecast: ${barangays.length}`);
+
+        const perBarangayPromises = barangays.map(async (brgy) => {
+          const series = byBarangay.get(brgy).map(x => x.count);
+          if (!series.length) return [];
+          try {
+            const resp = await getForecast(series, { horizon, method, moving_average_window: window, timeoutMs: 20000 });
+            const fc = resp.forecast || [];
+            // Map forecasts to year/month tuples starting current month
+            const out = [];
+            let y = startYear;
+            let m = startMonth; // include current month as first forecast period
+            for (let i = 0; i < fc.length; i++) {
+              out.push({
+                barangay_name: brgy,
+                year: y,
+                month: m,
+                predicted_cases: Number(fc[i]),
+                lower_bound: null,
+                upper_bound: null,
+                risk_level: 'Unknown',
+                risk_flag: false,
+                model_used: resp.method_used || method
+              });
+              m += 1;
+              if (m > 12) { m = 1; y += 1; }
+            }
+            return out;
+          } catch (e) {
+            console.error(`   ❌ Forecast failed for ${brgy}: ${e.message}`);
+            return [];
+          }
+        });
+
+        const perBarangayResults = await Promise.all(perBarangayPromises);
+        const forecasts = perBarangayResults.flat();
+        const metadata = {
+          total_barangays: barangays.length,
+          successful_forecasts: new Set(forecasts.map(f => f.barangay_name)).size,
+          transform_method: 'none',
+          models_summary: { method }
+        };
+
+        console.log('\nStep 3/4: Storing forecasts in database...');
+        const insertCount = await this.storeForecastsInDatabase(forecasts, metadata);
+
+        console.log('\nStep 4/4: Generating graph data for visualization...');
+        const graphInsertCount = await this.generateGraphData();
+
+        const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+        console.log(`\n${'='.repeat(60)}`);
+        console.log(`✅ Forecast Generation Complete (Microservice)`);
+        console.log(`${'='.repeat(60)}`);
+        console.log(`   Duration: ${duration}s`);
+        console.log(`   Forecasts stored: ${insertCount}`);
+        console.log(`   Graph records stored: ${graphInsertCount}`);
+        console.log(`   Barangays processed: ${metadata.total_barangays}`);
+        console.log(`   Successful: ${metadata.successful_forecasts}`);
+        console.log(`${'='.repeat(60)}\n`);
+
+        return {
+          success: true,
+          duration: parseFloat(duration),
+          forecasts_generated: forecasts.length,
+          forecasts_stored: insertCount,
+          graph_records_stored: graphInsertCount,
+          barangays_processed: metadata.total_barangays,
+          successful_barangays: metadata.successful_forecasts,
+          models_summary: metadata.models_summary,
+          metadata
+        };
+      }
+
+      // Step 2 (local Python): Prepare input file
       console.log('\nStep 2/5: Preparing input file...');
       inputFile = await this.prepareInputFile(historicalData, forecastMonths, targetDate);
 
-      // Step 3: Execute Python script
+      // Step 3 (local Python): Execute Python script
       console.log('\nStep 3/5: Running enhanced forecasting models...');
       outputFile = path.join(this.tempDir, `forecast_output_${Date.now()}.json`);
       await this.executePythonScript(inputFile, outputFile);
