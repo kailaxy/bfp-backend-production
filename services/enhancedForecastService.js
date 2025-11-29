@@ -266,10 +266,12 @@ class EnhancedForecastService {
           continue;
         }
 
-        // Validate numeric values and convert NaN to null
+        // Validate numeric values and ensure bounds are not null (DB NOT NULL constraint)
         const predicted_cases = isNaN(parseFloat(forecast.predicted_cases)) ? null : parseFloat(forecast.predicted_cases);
-        const lower_bound = isNaN(parseFloat(forecast.lower_bound)) ? null : parseFloat(forecast.lower_bound);
-        const upper_bound = isNaN(parseFloat(forecast.upper_bound)) ? null : parseFloat(forecast.upper_bound);
+        const lbRaw = parseFloat(forecast.lower_bound);
+        const ubRaw = parseFloat(forecast.upper_bound);
+        const lower_bound = isNaN(lbRaw) ? (predicted_cases ?? 0) : lbRaw;
+        const upper_bound = isNaN(ubRaw) ? (predicted_cases ?? 0) : ubRaw;
 
         // Skip if predicted_cases is null (invalid forecast)
         if (predicted_cases === null) {
@@ -552,8 +554,8 @@ class EnhancedForecastService {
 
         // Call microservice for each barangay
         const horizon = forecastMonths;
-        const method = process.env.FORECAST_METHOD || 'moving_average';
-        const window = Number(process.env.FORECAST_MA_WINDOW || 3);
+        const method = (process.env.FORECAST_METHOD || 'moving_average').toLowerCase();
+        const window = Math.max(1, Number(process.env.FORECAST_MA_WINDOW || 3));
 
         const barangays = Array.from(byBarangay.keys());
         console.log(`   Barangays to forecast: ${barangays.length}`);
@@ -562,6 +564,7 @@ class EnhancedForecastService {
           const series = byBarangay.get(brgy).map(x => x.count);
           if (!series.length) return [];
           try {
+            // Try chosen method first
             const resp = await getForecast(series, { horizon, method, moving_average_window: window, timeoutMs: 20000 });
             const fc = resp.forecast || [];
             // Map forecasts to year/month tuples starting current month
@@ -585,8 +588,34 @@ class EnhancedForecastService {
             }
             return out;
           } catch (e) {
-            console.error(`   ❌ Forecast failed for ${brgy}: ${e.message}`);
-            return [];
+            // Fallback for short series or method errors: try naive
+            console.warn(`   ⚠️ ${brgy}: primary method failed (${e.message}), falling back to naive`);
+            try {
+              const resp2 = await getForecast(series, { horizon, method: 'naive', timeoutMs: 20000 });
+              const fc2 = resp2.forecast || [];
+              const out = [];
+              let y = startYear;
+              let m = startMonth;
+              for (let i = 0; i < fc2.length; i++) {
+                out.push({
+                  barangay_name: brgy,
+                  year: y,
+                  month: m,
+                  predicted_cases: Number(fc2[i]),
+                  lower_bound: Number(fc2[i]),
+                  upper_bound: Number(fc2[i]),
+                  risk_level: 'Unknown',
+                  risk_flag: false,
+                  model_used: resp2.method_used || 'naive'
+                });
+                m += 1;
+                if (m > 12) { m = 1; y += 1; }
+              }
+              return out;
+            } catch (e2) {
+              console.error(`   ❌ Forecast failed for ${brgy} (fallback): ${e2.message}`);
+              return [];
+            }
           }
         });
 
