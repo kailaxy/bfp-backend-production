@@ -552,58 +552,42 @@ class EnhancedForecastService {
           arr.sort((a, b) => a.date.localeCompare(b.date));
         }
 
-        // Call microservice for each barangay
-        const horizon = forecastMonths;
-        // Enforce ARIMA to mirror the original Python methodology; no env override
-        const method = 'arima';
-        const window = 3; // unused for ARIMA
-        const arimaOrderEnv = '1,1,1';
-        const arima_order = arimaOrderEnv.split(',').map(x => parseInt(x.trim(), 10)).slice(0,3);
-
-        const barangays = Array.from(byBarangay.keys());
-        console.log(`   Barangays to forecast: ${barangays.length}`);
-
-        const perBarangayPromises = barangays.map(async (brgy) => {
-          const series = byBarangay.get(brgy).map(x => x.count);
-          if (!series.length) return [];
-          try {
-            // Try chosen method first (ARIMA default to match capstone methodology)
-            const resp = await getForecast(series, { horizon, method, moving_average_window: window, arima_order, timeoutMs: 30000 });
-            const fc = resp.forecast || [];
-            // Map forecasts to year/month tuples starting current month
-            const out = [];
-            let y = startYear;
-            let m = startMonth; // include current month as first forecast period
-            for (let i = 0; i < fc.length; i++) {
-              out.push({
-                barangay_name: brgy,
-                year: y,
-                month: m,
-                predicted_cases: Number(fc[i]),
-                lower_bound: null,
-                upper_bound: null,
-                risk_level: 'Unknown',
-                risk_flag: false,
-                model_used: resp.method_used || method
-              });
-              m += 1;
-              if (m > 12) { m = 1; y += 1; }
-            }
-            return out;
-          } catch (e) {
-            // No fallback: adhere strictly to capstone methodology
-            console.error(`   ❌ Forecast failed for ${brgy}: ${e.message}`);
-            return [];
-          }
+        // Batch call microservice once for all barangays for 12 months
+        const allRows = historicalData.map(r => ({
+          barangay: r.barangay,
+          date: r.date,
+          incident_count: Number(r.incident_count) || 0,
+        }));
+        const batch = await getBatchForecast(allRows, startYear, startMonth);
+        const items = batch.all_forecasts || [];
+        
+        // Debug: Log models being used
+        const modelCounts = {};
+        items.forEach(it => {
+          const model = it.model_used || 'Unknown';
+          modelCounts[model] = (modelCounts[model] || 0) + 1;
         });
-
-        const perBarangayResults = await Promise.all(perBarangayPromises);
-        const forecasts = perBarangayResults.flat();
+        console.log('   📊 Models returned from microservice:');
+        Object.entries(modelCounts).forEach(([model, count]) => {
+          console.log(`      ${model}: ${count} predictions`);
+        });
+        
+        const forecasts = items.map(it => ({
+          barangay_name: it.barangay_name,
+          year: it.year,
+          month: it.month,
+          predicted_cases: Number(it.predicted_cases) || 0,
+          lower_bound: Number(it.lower_bound ?? it.predicted_cases ?? 0),
+          upper_bound: Number(it.upper_bound ?? it.predicted_cases ?? 0),
+          risk_level: it.risk_level || 'Unknown',
+          risk_flag: Boolean(it.risk_flag) || false,
+          model_used: it.model_used || 'ARIMA/SARIMAX'
+        }));
         const metadata = {
-          total_barangays: barangays.length,
+          total_barangays: new Set(allRows.map(r => r.barangay)).size,
           successful_forecasts: new Set(forecasts.map(f => f.barangay_name)).size,
-          transform_method: 'none',
-          models_summary: { method }
+          transform_method: 'log1p/expm1',
+          models_summary: { method: 'Batch SARIMAX/ARIMA', total_predictions: batch.total_predictions || forecasts.length }
         };
 
         console.log('\nStep 3/4: Storing forecasts in database...');
