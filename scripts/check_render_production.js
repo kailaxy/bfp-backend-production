@@ -1,8 +1,15 @@
 const { Pool } = require('pg');
+require('dotenv').config();
 
 async function checkRenderProductionData() {
-  // Use the new Render external DATABASE_URL
-  const DATABASE_URL = process.env.DATABASE_URL || "postgresql://bfpmapping_nua2_user:mDB9Q1s6mnnTyX6gzqSMD5CTphUsvR6L@dpg-d35r1s2li9vc738l9f70-a.oregon-postgres.render.com:5432/bfpmapping_nua2";
+  // Use DATABASE_URL from environment variables
+  const DATABASE_URL = process.env.DATABASE_URL;
+  
+  if (!DATABASE_URL) {
+    console.error('❌ DATABASE_URL environment variable is required');
+    console.error('Example: DATABASE_URL=postgresql://user:password@host:5432/database');
+    process.exit(1);
+  }
   
   const pool = new Pool({
     connectionString: DATABASE_URL,

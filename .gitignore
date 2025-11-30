@@ -25,6 +25,28 @@ client/build/
 /.vscode
 Thumbs.db
 
+# Temporary files
+temp/
+tmp/
+*.tmp
+*.temp
+
+# Credentials and secrets - never commit
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets.json
+credentials.json
+*-credentials.json
+*-secret.json
+
+# Backup and dump files
+*.sql.bak
+*.dump
+*.backup
+
 # Archive and unused files
 archive/
 run_arima_from_csv.py
