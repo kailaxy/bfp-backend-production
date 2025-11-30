@@ -1,0 +1,955 @@
+barangay,date,incident_count
+Addition Hills,2010-05,1
+Addition Hills,2010-10,1
+Addition Hills,2011-01,3
+Addition Hills,2011-03,1
+Addition Hills,2011-06,3
+Addition Hills,2011-11,2
+Addition Hills,2011-12,3
+Addition Hills,2012-01,2
+Addition Hills,2012-02,1
+Addition Hills,2012-03,1
+Addition Hills,2012-04,2
+Addition Hills,2012-05,1
+Addition Hills,2012-06,3
+Addition Hills,2012-07,2
+Addition Hills,2012-08,3
+Addition Hills,2012-10,1
+Addition Hills,2012-11,1
+Addition Hills,2012-12,1
+Addition Hills,2013-01,1
+Addition Hills,2013-02,2
+Addition Hills,2013-03,1
+Addition Hills,2013-04,4
+Addition Hills,2013-05,1
+Addition Hills,2013-06,1
+Addition Hills,2013-08,2
+Addition Hills,2013-11,2
+Addition Hills,2013-12,2
+Addition Hills,2014-01,2
+Addition Hills,2014-02,1
+Addition Hills,2014-03,1
+Addition Hills,2014-04,1
+Addition Hills,2014-05,3
+Addition Hills,2014-06,1
+Addition Hills,2014-07,3
+Addition Hills,2014-09,4
+Addition Hills,2014-11,1
+Addition Hills,2015-03,2
+Addition Hills,2015-04,4
+Addition Hills,2015-05,1
+Addition Hills,2015-06,5
+Addition Hills,2015-08,3
+Addition Hills,2015-09,1
+Addition Hills,2015-10,3
+Addition Hills,2015-11,5
+Addition Hills,2015-12,2
+Addition Hills,2016-01,6
+Addition Hills,2016-02,2
+Addition Hills,2016-03,1
+Addition Hills,2016-08,2
+Addition Hills,2016-09,1
+Addition Hills,2016-10,1
+Addition Hills,2016-11,3
+Addition Hills,2016-12,1
+Addition Hills,2017-02,3
+Addition Hills,2017-03,1
+Addition Hills,2017-04,2
+Addition Hills,2017-05,1
+Addition Hills,2017-06,1
+Addition Hills,2017-07,1
+Addition Hills,2017-08,2
+Addition Hills,2017-11,1
+Addition Hills,2017-12,2
+Addition Hills,2018-01,4
+Addition Hills,2018-02,1
+Addition Hills,2018-03,2
+Addition Hills,2018-05,2
+Addition Hills,2018-06,4
+Addition Hills,2018-07,1
+Addition Hills,2018-08,2
+Addition Hills,2018-10,3
+Addition Hills,2018-11,1
+Addition Hills,2019-01,1
+Addition Hills,2019-02,1
+Addition Hills,2019-10,1
+Addition Hills,2019-11,1
+Addition Hills,2020-01,1
+Addition Hills,2020-02,1
+Addition Hills,2020-05,1
+Addition Hills,2020-06,2
+Addition Hills,2020-07,2
+Addition Hills,2021-02,3
+Addition Hills,2021-11,2
+Addition Hills,2022-01,2
+Addition Hills,2022-03,2
+Addition Hills,2022-12,2
+Addition Hills,2023-01,2
+Addition Hills,2023-03,2
+Addition Hills,2023-06,1
+Addition Hills,2023-07,3
+Addition Hills,2023-08,1
+Addition Hills,2023-09,1
+Addition Hills,2023-11,3
+Addition Hills,2023-12,2
+Addition Hills,2024-01,1
+Addition Hills,2024-02,1
+Addition Hills,2024-03,1
+Addition Hills,2024-04,3
+Addition Hills,2024-05,1
+Addition Hills,2024-06,1
+Addition Hills,2024-07,1
+Addition Hills,2024-08,1
+Addition Hills,2024-09,2
+Addition Hills,2024-12,2
+Bagong Silang,2011-08,1
+Bagong Silang,2012-08,1
+Bagong Silang,2012-10,1
+Bagong Silang,2013-04,1
+Bagong Silang,2013-05,1
+Bagong Silang,2013-09,1
+Bagong Silang,2015-04,1
+Bagong Silang,2015-12,1
+Bagong Silang,2017-04,1
+Bagong Silang,2018-07,1
+Bagong Silang,2018-08,1
+Bagong Silang,2018-11,1
+Bagong Silang,2019-10,1
+Bagong Silang,2019-11,1
+Bagong Silang,2022-04,1
+Bagong Silang,2024-07,1
+Bagong Silang,2024-08,1
+Barangka Drive,2011-03,1
+Barangka Drive,2011-04,1
+Barangka Drive,2011-05,1
+Barangka Drive,2011-06,3
+Barangka Drive,2011-08,1
+Barangka Drive,2011-10,2
+Barangka Drive,2012-07,1
+Barangka Drive,2012-09,2
+Barangka Drive,2013-06,1
+Barangka Drive,2013-11,1
+Barangka Drive,2014-01,1
+Barangka Drive,2014-03,1
+Barangka Drive,2014-11,1
+Barangka Drive,2015-01,1
+Barangka Drive,2015-02,1
+Barangka Drive,2015-04,1
+Barangka Drive,2015-05,1
+Barangka Drive,2015-07,1
+Barangka Drive,2015-08,1
+Barangka Drive,2015-10,1
+Barangka Drive,2016-01,1
+Barangka Drive,2016-06,1
+Barangka Drive,2016-07,1
+Barangka Drive,2016-09,2
+Barangka Drive,2016-10,1
+Barangka Drive,2016-12,1
+Barangka Drive,2017-01,1
+Barangka Drive,2017-02,1
+Barangka Drive,2017-04,2
+Barangka Drive,2017-06,1
+Barangka Drive,2017-08,2
+Barangka Drive,2017-09,1
+Barangka Drive,2017-12,3
+Barangka Drive,2018-02,2
+Barangka Drive,2018-04,3
+Barangka Drive,2018-05,3
+Barangka Drive,2018-06,1
+Barangka Drive,2018-07,1
+Barangka Drive,2018-09,3
+Barangka Drive,2018-10,3
+Barangka Drive,2019-02,1
+Barangka Drive,2019-08,1
+Barangka Drive,2020-04,1
+Barangka Drive,2020-09,1
+Barangka Drive,2021-11,2
+Barangka Drive,2022-10,1
+Barangka Drive,2022-12,1
+Barangka Drive,2023-03,1
+Barangka Drive,2023-06,1
+Barangka Drive,2024-04,1
+Barangka Ibaba,2011-01,2
+Barangka Ibaba,2011-02,1
+Barangka Ibaba,2011-05,1
+Barangka Ibaba,2013-09,1
+Barangka Ibaba,2013-11,1
+Barangka Ibaba,2016-01,1
+Barangka Ibaba,2017-04,1
+Barangka Ibaba,2017-08,1
+Barangka Ibaba,2018-05,1
+Barangka Ibaba,2018-08,1
+Barangka Ibaba,2019-08,1
+Barangka Ibaba,2021-02,1
+Barangka Ibaba,2021-06,1
+Barangka Ibaba,2022-05,1
+Barangka Ibaba,2023-04,1
+Barangka Ibaba,2023-07,1
+Barangka Ibaba,2023-09,1
+Barangka Ibaba,2024-07,1
+Barangka Ilaya,2010-03,1
+Barangka Ilaya,2011-06,1
+Barangka Ilaya,2011-08,1
+Barangka Ilaya,2011-10,1
+Barangka Ilaya,2011-11,1
+Barangka Ilaya,2012-01,1
+Barangka Ilaya,2012-02,1
+Barangka Ilaya,2012-04,1
+Barangka Ilaya,2012-07,2
+Barangka Ilaya,2012-12,2
+Barangka Ilaya,2013-05,1
+Barangka Ilaya,2013-06,2
+Barangka Ilaya,2013-12,1
+Barangka Ilaya,2014-03,3
+Barangka Ilaya,2014-07,1
+Barangka Ilaya,2014-12,1
+Barangka Ilaya,2015-03,1
+Barangka Ilaya,2015-04,1
+Barangka Ilaya,2015-07,2
+Barangka Ilaya,2015-11,1
+Barangka Ilaya,2016-06,4
+Barangka Ilaya,2017-01,1
+Barangka Ilaya,2017-05,1
+Barangka Ilaya,2017-06,1
+Barangka Ilaya,2017-07,1
+Barangka Ilaya,2017-11,1
+Barangka Ilaya,2018-04,1
+Barangka Ilaya,2018-05,1
+Barangka Ilaya,2018-12,1
+Barangka Ilaya,2019-09,1
+Barangka Ilaya,2020-05,1
+Barangka Ilaya,2020-07,1
+Barangka Ilaya,2020-12,1
+Barangka Ilaya,2021-01,1
+Barangka Ilaya,2021-04,1
+Barangka Ilaya,2021-08,1
+Barangka Ilaya,2021-12,1
+Barangka Ilaya,2022-03,1
+Barangka Ilaya,2022-11,1
+Barangka Ilaya,2023-02,1
+Barangka Ilaya,2023-03,1
+Barangka Ilaya,2023-06,2
+Barangka Ilaya,2023-07,1
+Barangka Ilaya,2024-04,1
+Barangka Ilaya,2024-08,1
+Barangka Ilaya,2024-11,2
+Barangka Itaas,2010-01,1
+Barangka Itaas,2010-10,1
+Barangka Itaas,2011-10,1
+Barangka Itaas,2012-07,1
+Barangka Itaas,2013-03,2
+Barangka Itaas,2013-04,1
+Barangka Itaas,2013-07,2
+Barangka Itaas,2013-08,1
+Barangka Itaas,2013-09,1
+Barangka Itaas,2013-12,1
+Barangka Itaas,2014-03,1
+Barangka Itaas,2014-12,1
+Barangka Itaas,2015-02,1
+Barangka Itaas,2015-04,1
+Barangka Itaas,2015-12,1
+Barangka Itaas,2016-01,1
+Barangka Itaas,2016-12,1
+Barangka Itaas,2017-04,1
+Barangka Itaas,2018-08,1
+Barangka Itaas,2018-09,1
+Barangka Itaas,2018-10,1
+Barangka Itaas,2018-11,1
+Barangka Itaas,2019-02,1
+Barangka Itaas,2019-12,1
+Barangka Itaas,2021-09,1
+Barangka Itaas,2022-07,1
+Barangka Itaas,2022-08,1
+Barangka Itaas,2024-05,1
+Barangka Itaas,2024-06,1
+Buayang Bato,2011-01,2
+Buayang Bato,2011-02,2
+Buayang Bato,2011-04,1
+Buayang Bato,2013-12,1
+Buayang Bato,2014-04,1
+Buayang Bato,2014-11,1
+Buayang Bato,2015-02,1
+Buayang Bato,2015-03,2
+Buayang Bato,2015-10,1
+Buayang Bato,2016-02,1
+Buayang Bato,2016-04,2
+Buayang Bato,2016-07,2
+Buayang Bato,2017-01,1
+Buayang Bato,2017-02,1
+Buayang Bato,2017-08,2
+Buayang Bato,2017-10,1
+Buayang Bato,2018-05,1
+Buayang Bato,2018-12,1
+Buayang Bato,2019-12,1
+Buayang Bato,2020-09,1
+Buayang Bato,2024-08,1
+Burol,2012-04,1
+Burol,2012-06,1
+Burol,2012-09,1
+Burol,2013-10,1
+Burol,2014-02,1
+Burol,2015-05,1
+Burol,2017-10,1
+Daang Bakal,2011-04,1
+Daang Bakal,2012-01,1
+Daang Bakal,2012-02,1
+Daang Bakal,2012-03,2
+Daang Bakal,2014-03,1
+Daang Bakal,2014-09,1
+Daang Bakal,2014-10,1
+Daang Bakal,2015-04,1
+Daang Bakal,2015-05,1
+Daang Bakal,2015-07,1
+Daang Bakal,2016-05,2
+Daang Bakal,2017-05,1
+Daang Bakal,2018-05,2
+Daang Bakal,2019-10,2
+Daang Bakal,2020-01,1
+Daang Bakal,2020-03,1
+Daang Bakal,2021-09,1
+Daang Bakal,2022-04,1
+Daang Bakal,2022-12,1
+Daang Bakal,2024-07,1
+Hagdang Bato Itaas,2010-01,1
+Hagdang Bato Itaas,2011-09,1
+Hagdang Bato Itaas,2012-12,1
+Hagdang Bato Itaas,2013-01,1
+Hagdang Bato Itaas,2013-12,1
+Hagdang Bato Itaas,2014-02,1
+Hagdang Bato Itaas,2018-04,1
+Hagdang Bato Itaas,2018-06,1
+Hagdang Bato Itaas,2019-11,1
+Hagdang Bato Itaas,2020-11,1
+Hagdang Bato Itaas,2022-07,1
+Hagdang Bato Itaas,2022-08,1
+Hagdang Bato Itaas,2023-10,1
+Hagdang Bato Itaas,2023-11,1
+Hagdang Bato Libis,2010-09,1
+Hagdang Bato Libis,2011-02,1
+Hagdang Bato Libis,2012-03,1
+Hagdang Bato Libis,2012-10,1
+Hagdang Bato Libis,2013-02,1
+Hagdang Bato Libis,2013-06,1
+Hagdang Bato Libis,2015-12,1
+Hagdang Bato Libis,2018-07,1
+Hagdang Bato Libis,2018-10,1
+Hagdang Bato Libis,2019-06,1
+Hagdang Bato Libis,2020-06,1
+Hagdang Bato Libis,2021-02,1
+Hagdang Bato Libis,2021-10,1
+Hagdang Bato Libis,2022-07,1
+Hagdang Bato Libis,2023-02,1
+Hagdang Bato Libis,2023-06,1
+Harapin ang Bukas,2011-02,1
+Harapin ang Bukas,2011-05,1
+Harapin ang Bukas,2012-05,1
+Harapin ang Bukas,2014-11,1
+Harapin ang Bukas,2015-07,1
+Harapin ang Bukas,2015-10,1
+Harapin ang Bukas,2016-09,1
+Harapin ang Bukas,2017-02,1
+Harapin ang Bukas,2018-05,1
+Harapin ang Bukas,2018-06,1
+Harapin ang Bukas,2018-07,1
+Harapin ang Bukas,2021-07,1
+Highway Hills,2010-02,1
+Highway Hills,2010-04,1
+Highway Hills,2010-11,1
+Highway Hills,2011-01,1
+Highway Hills,2011-02,2
+Highway Hills,2011-03,1
+Highway Hills,2011-05,1
+Highway Hills,2011-07,1
+Highway Hills,2011-09,1
+Highway Hills,2011-10,1
+Highway Hills,2011-11,1
+Highway Hills,2012-02,2
+Highway Hills,2012-03,1
+Highway Hills,2012-05,2
+Highway Hills,2012-08,2
+Highway Hills,2013-01,1
+Highway Hills,2013-02,1
+Highway Hills,2013-04,1
+Highway Hills,2013-09,1
+Highway Hills,2014-01,4
+Highway Hills,2014-04,1
+Highway Hills,2015-01,1
+Highway Hills,2015-02,2
+Highway Hills,2015-04,5
+Highway Hills,2015-06,1
+Highway Hills,2015-09,1
+Highway Hills,2015-10,1
+Highway Hills,2015-11,1
+Highway Hills,2015-12,1
+Highway Hills,2016-01,2
+Highway Hills,2016-02,1
+Highway Hills,2016-03,1
+Highway Hills,2016-04,1
+Highway Hills,2016-05,1
+Highway Hills,2016-06,2
+Highway Hills,2016-08,1
+Highway Hills,2016-10,2
+Highway Hills,2016-11,2
+Highway Hills,2017-01,1
+Highway Hills,2017-02,1
+Highway Hills,2017-03,3
+Highway Hills,2017-04,1
+Highway Hills,2017-06,3
+Highway Hills,2017-08,2
+Highway Hills,2017-09,1
+Highway Hills,2017-10,2
+Highway Hills,2017-12,1
+Highway Hills,2018-02,2
+Highway Hills,2018-05,1
+Highway Hills,2018-06,1
+Highway Hills,2018-09,1
+Highway Hills,2018-10,1
+Highway Hills,2018-12,2
+Highway Hills,2019-04,1
+Highway Hills,2019-06,2
+Highway Hills,2019-08,1
+Highway Hills,2019-09,1
+Highway Hills,2019-11,1
+Highway Hills,2020-01,3
+Highway Hills,2020-03,1
+Highway Hills,2020-08,1
+Highway Hills,2020-11,2
+Highway Hills,2022-06,1
+Highway Hills,2022-12,1
+Highway Hills,2023-03,1
+Highway Hills,2023-06,1
+Highway Hills,2023-09,1
+Highway Hills,2023-11,1
+Highway Hills,2024-03,1
+Highway Hills,2024-05,1
+Highway Hills,2024-06,1
+Highway Hills,2024-08,1
+Highway Hills,2024-11,1
+Highway Hills,2024-12,1
+Hulo,2010-01,1
+Hulo,2010-04,1
+Hulo,2010-05,1
+Hulo,2011-01,1
+Hulo,2011-03,1
+Hulo,2011-05,3
+Hulo,2011-09,1
+Hulo,2011-11,1
+Hulo,2011-12,1
+Hulo,2012-01,1
+Hulo,2012-02,1
+Hulo,2012-03,1
+Hulo,2012-04,1
+Hulo,2012-07,2
+Hulo,2012-09,1
+Hulo,2012-10,1
+Hulo,2012-12,1
+Hulo,2013-02,1
+Hulo,2013-11,1
+Hulo,2013-12,1
+Hulo,2014-01,2
+Hulo,2014-02,2
+Hulo,2014-03,2
+Hulo,2014-04,1
+Hulo,2014-06,1
+Hulo,2014-07,6
+Hulo,2014-08,1
+Hulo,2014-09,1
+Hulo,2014-12,2
+Hulo,2015-05,2
+Hulo,2015-06,1
+Hulo,2015-09,2
+Hulo,2015-10,1
+Hulo,2015-11,1
+Hulo,2016-01,1
+Hulo,2016-02,1
+Hulo,2016-03,1
+Hulo,2016-04,3
+Hulo,2016-06,1
+Hulo,2016-08,3
+Hulo,2016-09,1
+Hulo,2016-10,1
+Hulo,2016-11,1
+Hulo,2016-12,1
+Hulo,2017-01,1
+Hulo,2017-02,1
+Hulo,2017-03,3
+Hulo,2017-04,1
+Hulo,2017-05,2
+Hulo,2017-06,2
+Hulo,2017-07,1
+Hulo,2017-08,1
+Hulo,2018-05,2
+Hulo,2018-06,2
+Hulo,2018-07,1
+Hulo,2018-08,3
+Hulo,2018-09,3
+Hulo,2018-11,1
+Hulo,2018-12,1
+Hulo,2019-01,1
+Hulo,2019-04,1
+Hulo,2019-05,1
+Hulo,2020-05,1
+Hulo,2020-09,1
+Hulo,2021-03,1
+Hulo,2022-10,1
+Hulo,2022-12,1
+Hulo,2023-05,1
+Hulo,2023-06,1
+Hulo,2023-07,1
+Hulo,2023-09,1
+Hulo,2023-11,2
+Hulo,2024-01,1
+Mabini J. Rizal,2011-07,2
+Mabini J. Rizal,2011-11,1
+Mabini J. Rizal,2013-05,2
+Mabini J. Rizal,2014-02,1
+Mabini J. Rizal,2014-04,1
+Mabini J. Rizal,2015-12,1
+Mabini J. Rizal,2016-07,1
+Mabini J. Rizal,2016-11,1
+Mabini J. Rizal,2017-06,1
+Mabini J. Rizal,2018-09,1
+Mabini J. Rizal,2018-12,3
+Mabini J. Rizal,2020-07,1
+Mabini J. Rizal,2023-05,1
+Mabini J. Rizal,2023-12,1
+Mabini J. Rizal,2024-08,1
+Malamig,2010-06,1
+Malamig,2011-06,1
+Malamig,2011-08,1
+Malamig,2011-10,1
+Malamig,2012-03,1
+Malamig,2012-05,1
+Malamig,2012-07,1
+Malamig,2012-08,1
+Malamig,2014-03,1
+Malamig,2014-05,1
+Malamig,2014-10,1
+Malamig,2015-01,1
+Malamig,2015-02,1
+Malamig,2015-03,1
+Malamig,2015-07,1
+Malamig,2015-10,2
+Malamig,2016-01,1
+Malamig,2016-02,1
+Malamig,2016-03,2
+Malamig,2016-06,1
+Malamig,2016-07,1
+Malamig,2016-12,1
+Malamig,2017-03,1
+Malamig,2017-05,2
+Malamig,2017-07,1
+Malamig,2017-09,1
+Malamig,2017-10,2
+Malamig,2017-11,1
+Malamig,2017-12,2
+Malamig,2018-05,1
+Malamig,2018-09,1
+Malamig,2018-12,1
+Malamig,2019-04,1
+Malamig,2020-08,1
+Malamig,2021-07,1
+Malamig,2021-12,1
+Malamig,2022-05,1
+Malamig,2022-08,1
+Malamig,2022-12,1
+Malamig,2023-05,1
+Malamig,2024-12,2
+Mauway,2011-03,1
+Mauway,2011-04,2
+Mauway,2011-06,1
+Mauway,2011-11,2
+Mauway,2012-01,1
+Mauway,2012-03,1
+Mauway,2012-09,1
+Mauway,2012-12,2
+Mauway,2013-02,1
+Mauway,2013-03,1
+Mauway,2013-06,1
+Mauway,2013-07,1
+Mauway,2013-10,1
+Mauway,2014-01,1
+Mauway,2014-04,1
+Mauway,2014-05,2
+Mauway,2014-07,4
+Mauway,2015-04,2
+Mauway,2015-07,2
+Mauway,2015-08,1
+Mauway,2015-10,1
+Mauway,2015-11,1
+Mauway,2015-12,1
+Mauway,2016-02,2
+Mauway,2016-03,2
+Mauway,2016-04,1
+Mauway,2016-05,1
+Mauway,2016-07,1
+Mauway,2016-08,1
+Mauway,2016-09,1
+Mauway,2017-04,1
+Mauway,2017-05,1
+Mauway,2017-06,1
+Mauway,2017-07,1
+Mauway,2017-08,1
+Mauway,2017-10,1
+Mauway,2018-05,2
+Mauway,2018-07,2
+Mauway,2018-08,1
+Mauway,2018-10,2
+Mauway,2018-11,2
+Mauway,2018-12,1
+Mauway,2019-06,1
+Mauway,2020-06,1
+Mauway,2020-08,2
+Mauway,2022-01,1
+Mauway,2022-11,1
+Mauway,2023-05,1
+Mauway,2024-08,1
+Mauway,2024-12,1
+Namayan,2012-03,1
+Namayan,2012-05,2
+Namayan,2012-08,1
+Namayan,2013-06,1
+Namayan,2014-01,1
+Namayan,2014-03,1
+Namayan,2014-04,1
+Namayan,2015-09,1
+Namayan,2016-05,1
+Namayan,2016-06,1
+Namayan,2016-07,2
+Namayan,2016-10,1
+Namayan,2023-09,1
+New Zañiga,2011-02,1
+New Zañiga,2011-11,1
+New Zañiga,2011-12,1
+New Zañiga,2012-01,1
+New Zañiga,2014-03,1
+New Zañiga,2014-05,2
+New Zañiga,2014-07,2
+New Zañiga,2014-09,1
+New Zañiga,2014-10,1
+New Zañiga,2014-11,1
+New Zañiga,2015-01,1
+New Zañiga,2015-09,3
+New Zañiga,2015-12,1
+New Zañiga,2016-01,1
+New Zañiga,2016-04,1
+New Zañiga,2016-05,1
+New Zañiga,2016-07,1
+New Zañiga,2016-09,1
+New Zañiga,2017-02,1
+New Zañiga,2017-06,2
+New Zañiga,2018-03,1
+New Zañiga,2018-05,2
+New Zañiga,2018-06,1
+New Zañiga,2018-10,1
+New Zañiga,2020-11,1
+New Zañiga,2022-10,1
+New Zañiga,2023-03,1
+New Zañiga,2023-11,1
+New Zañiga,2024-10,1
+Old Zañiga,2011-03,1
+Old Zañiga,2011-09,1
+Old Zañiga,2011-12,1
+Old Zañiga,2012-03,1
+Old Zañiga,2012-04,2
+Old Zañiga,2012-10,1
+Old Zañiga,2013-08,1
+Old Zañiga,2013-11,1
+Old Zañiga,2014-01,1
+Old Zañiga,2014-04,1
+Old Zañiga,2014-05,1
+Old Zañiga,2015-03,1
+Old Zañiga,2015-04,2
+Old Zañiga,2015-05,1
+Old Zañiga,2015-09,1
+Old Zañiga,2017-05,1
+Old Zañiga,2017-07,1
+Old Zañiga,2017-08,1
+Old Zañiga,2017-09,1
+Old Zañiga,2018-06,1
+Old Zañiga,2021-12,1
+Old Zañiga,2023-05,1
+Pag-asa,2010-10,1
+Pag-asa,2012-06,1
+Pag-asa,2012-10,1
+Pag-asa,2013-01,1
+Pag-asa,2013-10,1
+Pag-asa,2014-02,1
+Pag-asa,2015-03,1
+Pag-asa,2015-07,1
+Pag-asa,2015-09,1
+Pag-asa,2015-10,1
+Pag-asa,2015-12,3
+Pag-asa,2016-08,1
+Pag-asa,2016-12,1
+Pag-asa,2017-06,1
+Pag-asa,2019-01,1
+Pag-asa,2023-01,1
+Pag-asa,2023-02,1
+Pag-asa,2023-09,1
+Pag-asa,2023-12,1
+Pag-asa,2024-08,1
+Plainview,2010-01,1
+Plainview,2010-02,1
+Plainview,2010-05,2
+Plainview,2010-06,1
+Plainview,2010-11,1
+Plainview,2011-03,1
+Plainview,2011-05,1
+Plainview,2011-06,1
+Plainview,2011-07,4
+Plainview,2011-08,4
+Plainview,2011-09,2
+Plainview,2011-10,2
+Plainview,2011-11,3
+Plainview,2011-12,4
+Plainview,2012-01,1
+Plainview,2012-02,1
+Plainview,2012-03,3
+Plainview,2012-04,1
+Plainview,2012-05,2
+Plainview,2012-06,1
+Plainview,2012-07,3
+Plainview,2012-08,1
+Plainview,2012-09,2
+Plainview,2012-10,1
+Plainview,2012-12,1
+Plainview,2013-01,1
+Plainview,2013-02,1
+Plainview,2013-03,2
+Plainview,2013-05,5
+Plainview,2013-08,1
+Plainview,2013-09,4
+Plainview,2013-10,2
+Plainview,2014-01,1
+Plainview,2014-02,1
+Plainview,2014-03,2
+Plainview,2014-04,1
+Plainview,2014-06,3
+Plainview,2014-07,3
+Plainview,2014-09,1
+Plainview,2014-10,1
+Plainview,2014-11,2
+Plainview,2014-12,2
+Plainview,2015-01,3
+Plainview,2015-02,2
+Plainview,2015-03,1
+Plainview,2015-04,4
+Plainview,2015-05,1
+Plainview,2015-07,2
+Plainview,2015-09,2
+Plainview,2015-10,1
+Plainview,2015-11,5
+Plainview,2015-12,1
+Plainview,2016-01,2
+Plainview,2016-03,3
+Plainview,2016-05,2
+Plainview,2016-06,1
+Plainview,2016-07,1
+Plainview,2016-08,1
+Plainview,2016-10,3
+Plainview,2017-02,1
+Plainview,2017-03,1
+Plainview,2017-05,3
+Plainview,2017-06,3
+Plainview,2017-07,2
+Plainview,2017-08,2
+Plainview,2017-09,3
+Plainview,2017-10,1
+Plainview,2017-11,2
+Plainview,2017-12,1
+Plainview,2018-01,2
+Plainview,2018-02,4
+Plainview,2018-03,1
+Plainview,2018-05,4
+Plainview,2018-06,2
+Plainview,2018-08,3
+Plainview,2018-09,3
+Plainview,2018-10,2
+Plainview,2018-11,1
+Plainview,2018-12,2
+Plainview,2019-03,1
+Plainview,2019-04,2
+Plainview,2019-05,2
+Plainview,2019-07,1
+Plainview,2019-11,2
+Plainview,2020-01,1
+Plainview,2020-03,2
+Plainview,2020-07,2
+Plainview,2020-10,1
+Plainview,2020-11,1
+Plainview,2021-02,1
+Plainview,2021-03,1
+Plainview,2021-08,1
+Plainview,2022-03,1
+Plainview,2022-04,1
+Plainview,2022-05,1
+Plainview,2022-06,1
+Plainview,2022-10,1
+Plainview,2022-11,1
+Plainview,2022-12,2
+Plainview,2023-01,1
+Plainview,2023-09,2
+Plainview,2024-03,1
+Plainview,2024-04,1
+Plainview,2024-05,3
+Plainview,2024-06,1
+Plainview,2024-07,1
+Plainview,2024-09,1
+Plainview,2024-10,1
+Pleasant Hills,2011-06,1
+Pleasant Hills,2011-10,2
+Pleasant Hills,2012-06,1
+Pleasant Hills,2013-01,1
+Pleasant Hills,2013-02,1
+Pleasant Hills,2014-02,1
+Pleasant Hills,2014-04,1
+Pleasant Hills,2015-10,1
+Pleasant Hills,2015-11,1
+Pleasant Hills,2016-01,1
+Pleasant Hills,2016-03,1
+Pleasant Hills,2016-05,2
+Pleasant Hills,2016-08,1
+Pleasant Hills,2016-12,1
+Pleasant Hills,2017-06,1
+Pleasant Hills,2019-10,1
+Pleasant Hills,2022-07,1
+Poblacion,2011-01,2
+Poblacion,2011-05,1
+Poblacion,2011-07,1
+Poblacion,2011-11,1
+Poblacion,2012-02,1
+Poblacion,2012-06,1
+Poblacion,2012-10,1
+Poblacion,2012-11,1
+Poblacion,2012-12,1
+Poblacion,2013-02,1
+Poblacion,2013-08,2
+Poblacion,2013-12,1
+Poblacion,2014-04,2
+Poblacion,2014-06,1
+Poblacion,2014-10,1
+Poblacion,2014-12,1
+Poblacion,2015-02,1
+Poblacion,2015-03,1
+Poblacion,2015-08,1
+Poblacion,2016-04,4
+Poblacion,2016-09,1
+Poblacion,2016-10,1
+Poblacion,2016-11,1
+Poblacion,2017-06,1
+Poblacion,2017-07,1
+Poblacion,2017-08,2
+Poblacion,2017-10,1
+Poblacion,2018-01,1
+Poblacion,2018-06,1
+Poblacion,2018-07,1
+Poblacion,2018-11,1
+Poblacion,2020-03,2
+Poblacion,2020-05,4
+Poblacion,2021-08,1
+Poblacion,2022-11,1
+Poblacion,2024-03,1
+San Jose,2011-12,1
+San Jose,2014-03,1
+San Jose,2014-04,1
+San Jose,2015-12,1
+San Jose,2016-01,1
+San Jose,2017-01,1
+San Jose,2017-06,1
+San Jose,2017-07,1
+San Jose,2018-05,1
+San Jose,2018-06,2
+San Jose,2018-09,1
+San Jose,2018-10,1
+San Jose,2019-06,1
+San Jose,2020-03,1
+San Jose,2021-01,1
+San Jose,2022-04,1
+San Jose,2022-05,1
+San Jose,2023-01,1
+San Jose,2023-10,1
+San Jose,2023-12,1
+San Jose,2024-03,1
+San Jose,2024-10,1
+Vergara,2011-04,1
+Vergara,2011-08,1
+Vergara,2012-09,1
+Vergara,2013-04,1
+Vergara,2013-08,1
+Vergara,2014-04,1
+Vergara,2014-09,1
+Vergara,2016-02,1
+Vergara,2016-08,1
+Vergara,2016-10,1
+Vergara,2017-05,1
+Vergara,2018-03,1
+Vergara,2018-05,2
+Vergara,2020-03,1
+Vergara,2020-05,1
+Vergara,2023-10,1
+Vergara,2024-02,1
+Vergara,2024-12,1
+Wack-Wack Greenhills,2010-03,1
+Wack-Wack Greenhills,2011-01,1
+Wack-Wack Greenhills,2011-02,1
+Wack-Wack Greenhills,2011-05,1
+Wack-Wack Greenhills,2011-07,1
+Wack-Wack Greenhills,2011-08,1
+Wack-Wack Greenhills,2011-11,1
+Wack-Wack Greenhills,2012-02,2
+Wack-Wack Greenhills,2012-03,2
+Wack-Wack Greenhills,2012-04,2
+Wack-Wack Greenhills,2012-05,2
+Wack-Wack Greenhills,2012-09,1
+Wack-Wack Greenhills,2012-10,1
+Wack-Wack Greenhills,2012-11,1
+Wack-Wack Greenhills,2013-01,2
+Wack-Wack Greenhills,2013-08,1
+Wack-Wack Greenhills,2013-10,2
+Wack-Wack Greenhills,2013-11,1
+Wack-Wack Greenhills,2014-01,1
+Wack-Wack Greenhills,2014-02,2
+Wack-Wack Greenhills,2014-03,2
+Wack-Wack Greenhills,2014-07,1
+Wack-Wack Greenhills,2014-09,1
+Wack-Wack Greenhills,2015-01,1
+Wack-Wack Greenhills,2015-03,1
+Wack-Wack Greenhills,2015-04,1
+Wack-Wack Greenhills,2015-06,1
+Wack-Wack Greenhills,2015-10,2
+Wack-Wack Greenhills,2015-11,1
+Wack-Wack Greenhills,2015-12,1
+Wack-Wack Greenhills,2016-01,1
+Wack-Wack Greenhills,2016-02,1
+Wack-Wack Greenhills,2016-03,1
+Wack-Wack Greenhills,2016-06,1
+Wack-Wack Greenhills,2016-09,1
+Wack-Wack Greenhills,2016-10,2
+Wack-Wack Greenhills,2016-11,1
+Wack-Wack Greenhills,2016-12,1
+Wack-Wack Greenhills,2017-08,1
+Wack-Wack Greenhills,2017-09,1
+Wack-Wack Greenhills,2017-11,2
+Wack-Wack Greenhills,2017-12,1
+Wack-Wack Greenhills,2018-01,3
+Wack-Wack Greenhills,2018-03,1
+Wack-Wack Greenhills,2018-07,1
+Wack-Wack Greenhills,2019-01,1
+Wack-Wack Greenhills,2019-02,1
+Wack-Wack Greenhills,2019-03,1
+Wack-Wack Greenhills,2019-10,1
+Wack-Wack Greenhills,2019-12,1
+Wack-Wack Greenhills,2020-01,1
+Wack-Wack Greenhills,2020-03,1
+Wack-Wack Greenhills,2020-06,2
+Wack-Wack Greenhills,2021-05,1
+Wack-Wack Greenhills,2021-06,1
+Wack-Wack Greenhills,2021-09,1
+Wack-Wack Greenhills,2022-12,1
+Wack-Wack Greenhills,2023-03,1
+Wack-Wack Greenhills,2023-04,1
+Wack-Wack Greenhills,2024-05,1
+Wack-Wack Greenhills,2024-08,3
+Wack-Wack Greenhills,2024-09,1
+Wack-Wack Greenhills,2024-10,1

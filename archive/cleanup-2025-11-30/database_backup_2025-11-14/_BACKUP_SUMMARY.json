@@ -1,0 +1,18 @@
+{
+  "backupDate": "2025-11-14T12:01:43.505Z",
+  "databaseUrl": "Connected",
+  "tables": [
+    "active_fires",
+    "barangays",
+    "forecasts",
+    "forecasts_graphs",
+    "historical_fires",
+    "hydrants",
+    "mandaluyong_fire_stations",
+    "notifications",
+    "spatial_ref_sys",
+    "users"
+  ],
+  "totalTables": 10,
+  "backupLocation": "C:\\Users\\Kyle Sermon\\bfp-project\\bfp-backend\\database_backup_2025-11-14"
+}

@@ -161,15 +161,9 @@ class LocalForecastGenerator {
   }
 
   async uploadForecasts(forecasts, metadata) {
-    const client = new Client({ 
-      host: 'dpg-d35r1s2li9vc738l9f70-a.singapore-postgres.render.com',
-      port: 5432,
-      database: 'bfpmapping_nua2',
-      user: 'bfpmapping_nua2_user',
-      password: 'mDB9Q1s6mnnTyX6gzqSMD5CTphUsvR6L',
-      ssl: {
-        rejectUnauthorized: false
-      }
+    const client = new Client({
+      connectionString: PRODUCTION_DB_URL,
+      ssl: { rejectUnauthorized: false }
     });
 
     try {
