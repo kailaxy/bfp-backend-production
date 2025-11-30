@@ -13,7 +13,8 @@ const jwt = require('jsonwebtoken');
     const email = username + '@example.com';
     const ins = await db.query('INSERT INTO users (username,password_hash,email,role,station_id) VALUES ($1,$2,$3,$4,$5) RETURNING id,username,station_id', [username, hash, email, 'responder', station.id]);
     const u = ins.rows[0];
-    const token = jwt.sign({ id: u.id, username: u.username, role: 'responder' }, process.env.JWT_SECRET || 'supersecret', { expiresIn: '1d' });
+    if (!process.env.JWT_SECRET) { console.error('JWT_SECRET env var is required'); process.exit(1); }
+    const token = jwt.sign({ id: u.id, username: u.username, role: 'responder' }, process.env.JWT_SECRET, { expiresIn: '1d' });
     console.log('STATION', JSON.stringify(station));
     console.log('USER', JSON.stringify(u));
     console.log('TOKEN', token);

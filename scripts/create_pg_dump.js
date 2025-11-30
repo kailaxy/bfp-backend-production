@@ -144,13 +144,15 @@ FROM forecasts;
     
     console.log(`\n📋 RESTORE OPTIONS:`);
     console.log(`\n1. 🔧 Using psql (recommended):`);
-    console.log(`   psql "postgresql://bfpmapping_nua2_user:mDB9Q1s6mnnTyX6gzqSMD5CTphUsvR6L@dpg-d35r1s211gvc73819f70-a.oregon-postgres.render.com:5432/bfpmapping_nua2" < bfp_arima_forecasts.sql`);
+    console.log(`   psql "$DATABASE_URL" < bfp_arima_forecasts.sql`);
     
     console.log(`\n2. 🔧 Using psql with SSL options:`);
-    console.log(`   psql "postgresql://bfpmapping_nua2_user:mDB9Q1s6mnnTyX6gzqSMD5CTphUsvR6L@dpg-d35r1s211gvc73819f70-a.oregon-postgres.render.com:5432/bfpmapping_nua2?sslmode=prefer" < bfp_arima_forecasts.sql`);
+    console.log(`   psql "$DATABASE_URL?sslmode=prefer" < bfp_arima_forecasts.sql`);
     
     console.log(`\n3. 💻 Copy/paste into any database client`);
     console.log(`   The file is formatted for direct execution`);
+    
+    console.log(`\n⚠️  Set DATABASE_URL environment variable before running psql commands.`);
     
     return dumpFile;
     

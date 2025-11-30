@@ -7,8 +7,8 @@ module.exports = function devAuth(req, res, next) {
   if (req.headers.authorization) return next();
 
   // Option 1: if DEV_AUTH_TOKEN is set, verify and attach its payload
-  const JWT_SECRET = process.env.JWT_SECRET || 'supersecret';
-  if (process.env.DEV_AUTH_TOKEN) {
+  const JWT_SECRET = process.env.JWT_SECRET;
+  if (process.env.DEV_AUTH_TOKEN && JWT_SECRET) {
     try {
       const payload = jwt.verify(process.env.DEV_AUTH_TOKEN, JWT_SECRET);
       req.user = payload;
