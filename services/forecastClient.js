@@ -45,4 +45,28 @@ async function getForecast(series, options = {}) {
   }
 }
 
-module.exports = { getForecast };
+async function getBatchForecast(allRows, startYear, startMonth) {
+  const base = normalizeBaseUrl(baseUrl);
+  const url = `${base}/forecast12`;
+  const body = {
+    historical_data: allRows.map(r => ({
+      barangay: r.barangay,
+      date: r.date,
+      incident_count: r.incident_count,
+    })),
+    start_year: startYear,
+    start_month: startMonth,
+  };
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Forecast service error ${res.status}: ${text}`);
+  }
+  return res.json();
+}
+
+module.exports = { getForecast, getBatchForecast };
