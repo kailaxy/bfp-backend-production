@@ -1,6 +1,0 @@
-id,username,password_hash,email,role,created_at,updated_at,station_id,refresh_token
-2,"testadmin","$2b$10$AbpuPnWzw5CgmHbNXuKJwew2vsOV.W1eHZTMzP07m7g8RxxjAT/0G","testadmin@example.com","admin","""2025-09-15T12:47:08.262Z""","""2025-09-15T12:47:08.262Z""",,
-20,"testkyle","$2b$10$/G7pLNndVprr3UN0ZJcVDufqtEejuB65zHwRNkBazeCCgeZWac6y2","testkyle@example.com","responder","""2025-09-19T08:57:35.680Z""","""2025-09-19T08:57:35.680Z""",3,
-21,"a","$2b$10$cOVYP.WZuHH6x/Wlg3foVO9S5ydmP7.hOhm.Xs5Uf5YUCQvl1Wp.C","a@m.com","responder","""2025-09-19T09:12:44.451Z""","""2025-09-19T09:12:44.451Z""",,
-19,"kyle","$2b$10$GG7Hj3KZa0PBSWUM9/VHy.HG4D8TAGYJqwLamWciiF447JDm/Bzl.","kyle@example.com","responder","""2025-09-18T01:28:03.646Z""","""2025-09-18T01:28:03.646Z""",3,"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTksInVzZXJuYW1lIjoia3lsZSIsInR5cGUiOiJyZWZyZXNoIiwiaWF0IjoxNzU5MzcyNTE4LCJleHAiOjE3NjE5NjQ1MTh9.k43PVNlpB2v7DP4Kn-XVqVf7_Hy-_MGbDl4yGuhOJko"
-1,"admin","$2b$10$x7Fue43/QCUhxmRqSm4YxObpsP8IENKWjgiCDN7MQS5L06hkUtOdS","admin@example.com","admin","""2025-09-15T12:24:48.337Z""","""2025-09-15T12:24:48.337Z""",,"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwidXNlcm5hbWUiOiJhZG1pbiIsInR5cGUiOiJyZWZyZXNoIiwiaWF0IjoxNzYyNTA2NzI3LCJleHAiOjE3NjUwOTg3Mjd9.lRVPMV2d7DnjcUNlqhQmo1AFWFjqFHrOkdjbzsiHCZM"

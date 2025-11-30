@@ -1,5 +1,8 @@
 node_modules/
 /.env
+.env
+.env.*
+!.env.example
 env/
 .env.local
 .env.*.local
@@ -21,3 +24,12 @@ client/build/
 /.idea
 /.vscode
 Thumbs.db
+
+# Archive and unused files
+archive/
+run_arima_from_csv.py
+regenerate_forecasts.ps1
+test_max_steps.py
+clean_git_history.ps1
+*.pyc
+__pycache__/

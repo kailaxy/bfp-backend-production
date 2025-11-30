@@ -1,5 +1,0 @@
-{
-  "timestamp": "2025-10-06T15:24:18.853Z",
-  "error": "HTTP 500: {\"error\":\"Upload failed: relation \\\"arima_forecasts\\\" does not exist\"}",
-  "stack": "Error: HTTP 500: {\"error\":\"Upload failed: relation \\\"arima_forecasts\\\" does not exist\"}\n    at convertAndUpload (C:\\Users\\Kyle Sermon\\bfp-project\\bfp-backend\\temp\\convert_and_upload.js:39:13)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)"
-}
