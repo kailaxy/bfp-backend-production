@@ -3,7 +3,11 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const { createUser, validatePassword } = require('../models/user');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecret';
+if (!process.env.JWT_SECRET) {
+  console.error('❌ JWT_SECRET environment variable is required');
+  process.exit(1);
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // Public registration disabled. Use admin-only endpoint to create accounts.
 router.post('/register', (req, res) => {

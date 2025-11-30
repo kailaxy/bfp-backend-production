@@ -5,7 +5,8 @@ const pool = require('../config/db');
 
 (async ()=>{
   try{
-    const token = jwt.sign({id:1,username:'devadmin',role:'admin'}, process.env.JWT_SECRET || 'supersecret', {expiresIn:'1d'});
+    if (!process.env.JWT_SECRET) { console.error('JWT_SECRET env var is required'); process.exit(1); }
+    const token = jwt.sign({id:1,username:'devadmin',role:'admin'}, process.env.JWT_SECRET, {expiresIn:'1d'});
     const lat = 14.5771704;
     const lng = 121.0333542;
     console.log('Posting active fire at', lat, lng);
