@@ -11,7 +11,7 @@
 
 const db = require('../config/db');
 const { spawn } = require('child_process');
-const { getForecast } = require('./forecastClient');
+const { getForecast, getBatchForecast } = require('./forecastClient');
 const fs = require('fs').promises;
 const path = require('path');
 
